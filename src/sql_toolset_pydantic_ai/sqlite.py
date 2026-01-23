@@ -3,7 +3,6 @@ import time
 from typing import Any
 
 import aiosqlite
-from icecream import ic
 
 from .types import ColumnInfo, ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
 
@@ -46,10 +45,26 @@ class SQLiteClient:
                 execution_time_ms=(time.perf_counter() - start_time) * 1000,
             )
 
+    async def get_tables(self) -> list[str]:
+        # Fetch all table names from the database
+        query = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';"
+        res = await self.execute(query)
+
+        tables = []
+        for row in res.rows:
+            tables.append(row[0])
+
+        return tables
+
     async def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
+        tables = await self.get_tables()
+        if table_name not in tables:
+            return [ForeignKeyInfo("", "", "")]
+
+        foreign_keys = []
         query = f"PRAGMA foreign_key_list ({table_name});"
         res = await self.execute(query)
-        foreign_keys = []
+
         for row in res.rows:
             foreign_keys.append(
                 ForeignKeyInfo(column=row[3], references_table=row[2], references_column=row[4])
@@ -58,10 +73,12 @@ class SQLiteClient:
         return foreign_keys
 
     async def get_table_info(self, table_name: str) -> TableInfo:
+        tables = await self.get_tables()
+        if table_name not in tables:
+            return TableInfo("", [ColumnInfo("", "", True, None, False)], None, [])
+
         query = f"PRAGMA table_info ({table_name});"
         res = await self.execute(query)
-        ic(table_name)
-        ic(res)
 
         columns = []
         primary_keys = []
@@ -94,17 +111,6 @@ class SQLiteClient:
             primary_key=primary_keys,
             foreign_keys=foreign_keys,
         )
-
-    async def get_tables(self) -> list[str]:
-        # Fetch all table names from the database
-        query = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';"
-        res = await self.execute(query)
-
-        tables = []
-        for row in res.rows:
-            tables.append(row[0])
-
-        return tables
 
     async def get_schema(self) -> SchemaInfo:
         table_names = await self.get_tables()

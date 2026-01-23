@@ -20,7 +20,7 @@ async def db_client() -> AsyncGenerator[SQLiteClient, Any]:
 
 ### TESTS ###
 @pytest.mark.asyncio
-async def test_client_closure(db_client):
+async def test_client_closure(db_client) -> None:
     await db_client.close()
     assert db_client._connection is None
 
@@ -55,6 +55,22 @@ async def test_relationship_integrity(db_client) -> None:
     assert res == [
         ForeignKeyInfo(column="user_id", references_table="users", references_column="id")
     ]
+
+
+@pytest.mark.asyncio
+async def test_relationship_integrity_empty_table(db_client) -> None:
+    # Act
+    tables = await db_client.get_tables()
+    fk = await db_client.get_foreign_keys("table")
+
+    # Assert
+    assert tables is not None
+    assert isinstance(tables, list)
+    assert tables == []
+
+    assert fk is not None
+    assert isinstance(fk, list)
+    assert fk == [ForeignKeyInfo("", "", "")]
 
 
 @pytest.mark.asyncio
@@ -100,6 +116,16 @@ async def test_get_table_info(db_client) -> None:
 
 
 @pytest.mark.asyncio
+async def test_get_table_info_no_table(db_client) -> None:
+    # Act
+    res = await db_client.get_table_info("some_table")
+
+    # Assert
+    assert res is not None
+    assert res == TableInfo("", [ColumnInfo("", "", True, None, False)], None, [])
+
+
+@pytest.mark.asyncio
 async def test_get_tables(db_client) -> None:
     # Act
     await db_client.execute(
@@ -122,7 +148,18 @@ async def test_get_tables(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(db_client):
+async def test_get_tables_no_tables(db_client) -> None:
+    # Act
+    res = await db_client.get_tables()
+
+    # Assert
+    assert res is not None
+    assert isinstance(res, list)
+    assert len(res) == 0
+
+
+@pytest.mark.asyncio
+async def test_get_schema(db_client) -> None:
     # Act
     await db_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -180,8 +217,17 @@ async def test_get_schema(db_client):
 
 
 @pytest.mark.asyncio
-async def test_explain(db_client):
+async def test_get_schema_no_tables(db_client) -> None:
     # Act
+    res = await db_client.get_schema()
+
+    # Assert
+    assert res is not None
+    assert res == SchemaInfo([])
+
+
+@pytest.mark.asyncio
+async def test_explain(db_client) -> None:
     # Act
     await db_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
