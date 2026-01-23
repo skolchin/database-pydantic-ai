@@ -5,15 +5,18 @@ description = "PydanticAI toolset allowing SQL usage with AI agents"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Vstorm"}]
-dependencies = []
+dependencies = [
+    "aiosqlite>=0.22.1",
+    "pydantic-ai>=0.1.0",
+]
 
 [project.optional-dependencies]
 dev = [
-    "pydantic-ai>=0.1.0",
     "pytest>=9.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=7.0.0",
     "coverage>=7.0.0",
+    "icecream>=2.1.10",
     "ruff>=0.8.0",
     "pyright>=1.1.400",
     "mypy>=1.0.0",
@@ -54,7 +57,7 @@ asyncio_default_fixture_loop_scope = "function"
 # Coverage configuration
 [tool.coverage.run]
 branch = true
-source = ["src/pydantic_ai_backends"]
+source = ["src/sql_toolset_pydantic_ai"]
 data_file = ".coverage/.coverage"
 
 [tool.coverage.report]
@@ -85,7 +88,7 @@ directory = "htmlcov"
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
-include = ["src/pydantic_ai_backends"]
+include = ["src/sql_toolset_pydantic_ai"]
 exclude = ["**/__pycache__", ".venv*", "tests"]
 reportMissingTypeStubs = false
 reportMissingImports = false
