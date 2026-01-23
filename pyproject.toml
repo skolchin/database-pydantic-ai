@@ -10,7 +10,10 @@ dependencies = [
     "pydantic-ai>=0.1.0",
 ]
 
-[project.optional-dependencies]
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
 dev = [
     "pytest>=9.0.0",
     "pytest-asyncio>=0.23.0",

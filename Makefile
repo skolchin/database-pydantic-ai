@@ -26,6 +26,7 @@ lint:
 format:
 	uv run ruff format src tests
 	uv run ruff check --fix src tests
+	uv run ruff check src tests --select I --fix
 
 # Type checking
 typecheck:

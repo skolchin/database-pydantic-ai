@@ -12,6 +12,15 @@ from src.sql_toolset_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, Schema
 @pytest_asyncio.fixture
 async def db_client() -> AsyncGenerator[SQLiteClient, Any]:
     # Using `:memory:` to use fast and RAM
+    client = SQLiteClient(":memory:", read_only=False)
+    await client.connect()
+    yield client
+    await client.close()
+
+
+@pytest_asyncio.fixture
+async def db_client_read_only() -> AsyncGenerator[SQLiteClient, Any]:
+    # Using `:memory:` to use fast and RAM
     client = SQLiteClient(":memory:")
     await client.connect()
     yield client
@@ -19,6 +28,103 @@ async def db_client() -> AsyncGenerator[SQLiteClient, Any]:
 
 
 ### TESTS ###
+## READ-ONLY ##
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_basic(db_client_read_only) -> None:
+    # Basic INSERT
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_start_comment(db_client_read_only) -> None:
+    # Leading block comment
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "/* comments here */ INSERT INTO users (id, name, email) "
+            "VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_start_hyphen(db_client_read_only) -> None:
+    # Leading line comment
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "-- comment line\nINSERT INTO users (id, name, email) "
+            "VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_mixed_case(db_client_read_only) -> None:
+    # Mixed case and leading spaces/comments
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "   -- comment\nInSeRt INTO users (id, name, email) "
+            "VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_start_with(db_client_read_only) -> None:
+    # CTE with forbidden keyword inside
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "WITH x AS (SELECT * FROM users) "
+            "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_inline_comment(db_client_read_only) -> None:
+    # Inline comment in the middle of the query
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "INSERT INTO users (id, /* comment */ name, email) "
+            "VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_multiline_cte(db_client_read_only) -> None:
+    # Multi-line CTE with INSERT after
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            """
+            WITH cte AS (
+                SELECT id, name FROM users
+            )
+            INSERT INTO users (id, name, email)
+            VALUES (1, 'Alice', 'alice@example.com');
+            """
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+@pytest.mark.asyncio
+async def test_read_client_with_write_query_whitespace_variants(db_client_read_only) -> None:
+    # Leading/trailing whitespace and line breaks
+    with pytest.raises(PermissionError) as exc_info:
+        await db_client_read_only.execute(
+            "  \n\tINSERT  INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
+        )
+    assert str(exc_info.value) == "Database is in read-only mode"
+
+
+## READ & WRITE ##
+
+
 @pytest.mark.asyncio
 async def test_client_closure(db_client) -> None:
     await db_client.close()
@@ -70,7 +176,7 @@ async def test_relationship_integrity_empty_table(db_client) -> None:
 
     assert fk is not None
     assert isinstance(fk, list)
-    assert fk == [ForeignKeyInfo("", "", "")]
+    assert fk == []
 
 
 @pytest.mark.asyncio
@@ -121,8 +227,7 @@ async def test_get_table_info_no_table(db_client) -> None:
     res = await db_client.get_table_info("some_table")
 
     # Assert
-    assert res is not None
-    assert res == TableInfo("", [ColumnInfo("", "", True, None, False)], None, [])
+    assert res is None
 
 
 @pytest.mark.asyncio
@@ -238,3 +343,16 @@ async def test_explain(db_client) -> None:
 
     # Assert
     assert res is not None
+    assert len(res) > 0
+    assert isinstance(res, str)
+
+
+@pytest.mark.asyncio
+async def test_explain_random(db_client) -> None:
+    # Act
+    res = await db_client.explain("random_query")
+
+    # Assert
+    assert res is not None
+    assert len(res) > 0
+    assert isinstance(res, str)
