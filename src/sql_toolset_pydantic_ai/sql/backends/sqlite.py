@@ -4,42 +4,22 @@ from typing import Any
 
 import aiosqlite
 
-from .types import ColumnInfo, ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
+from sql_toolset_pydantic_ai.sql.base import BaseSQLDatabase
+from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from sql_toolset_pydantic_ai.types import (
+    ColumnInfo,
+    ForeignKeyInfo,
+    QueryResult,
+    SchemaInfo,
+    TableInfo,
+)
 
-FORBIDDEN = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "REPLACE", "VACUUM"}
 
-
-class SQLiteDatabase:
+class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
     def __init__(self, db_path: str, read_only: bool = True) -> None:
+        super().__init__(read_only=read_only)
         self.db_path = db_path
-        self.read_only = read_only
         self._connection: aiosqlite.Connection | None = None
-
-    def _is_write_query(self, query: str) -> bool:
-        sql = query.upper().strip()
-
-        # Strip leading SQL comments
-        while sql.startswith("--") or sql.startswith("/*"):
-            if sql.startswith("--"):
-                sql = sql.split("\n", 1)[-1].lstrip()
-            else:
-                _, _, sql = sql.partition("*/")
-                sql = sql.lstrip()
-
-        # Collapse all whitespace and remove inline comments for safer detection
-        import re
-
-        sql_clean = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
-        sql_clean = re.sub(r"--.*", " ", sql_clean)
-        sql_clean = " ".join(sql_clean.split())  # normalize whitespace
-
-        # Check forbidden keywords at start or after a CTE
-        if sql_clean.startswith("WITH"):
-            # Remove the initial WITH clause up to the first semicolon or forbidden keyword
-            # and see if any forbidden keyword appears next
-            return any(kw in sql_clean for kw in FORBIDDEN)
-
-        return any(sql_clean.startswith(kw) for kw in FORBIDDEN)
 
     async def connect(self) -> None:
         if not self._connection:

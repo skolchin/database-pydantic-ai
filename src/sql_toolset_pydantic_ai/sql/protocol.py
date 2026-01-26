@@ -1,9 +1,9 @@
 from typing import Any, Protocol
 
-from src.sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
+from sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
 
 
-class DatabaseProtocol(Protocol):
+class SQLDatabaseProtocol(Protocol):
     """Protocol for database backends."""
 
     read_only: bool

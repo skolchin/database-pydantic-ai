@@ -4,29 +4,29 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic_ai import RunContext
 
-from src.sql_toolset_pydantic_ai.protocol import DatabaseProtocol
-from src.sql_toolset_pydantic_ai.toolsets.sqlite import (
-    DatabaseDeps,
+from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from sql_toolset_pydantic_ai.sql.toolset import (
+    SQLDatabaseDeps,
     create_database_toolset,
 )
-from src.sql_toolset_pydantic_ai.types import QueryResult
+from sql_toolset_pydantic_ai.types import QueryResult
 
 
 @pytest.fixture
 def mock_client() -> AsyncMock:
-    client = AsyncMock(spec=DatabaseProtocol)
+    client = AsyncMock(spec=SQLDatabaseProtocol)
     return client
 
 
 @pytest.fixture
-def deps(mock_client: AsyncMock) -> DatabaseDeps:
+def deps(mock_client: AsyncMock) -> SQLDatabaseDeps:
     # Instead of a generic AsyncMock, use a real instance or
     # link the database attribute to your mock_client
-    return DatabaseDeps(database=mock_client, max_rows=20, query_timeout=1.0)
+    return SQLDatabaseDeps(database=mock_client, max_rows=20, query_timeout=1.0)
 
 
 @pytest.fixture
-def context(deps: DatabaseDeps) -> RunContext[DatabaseDeps]:
+def context(deps: SQLDatabaseDeps) -> RunContext[SQLDatabaseDeps]:
     # Mocking RunContext since it might be complex to instantiate directly
     # dependent on pydantic-ai version
     ctx = MagicMock(spec=RunContext)
@@ -54,7 +54,7 @@ def test_toolset_creation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_tables(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_list_tables(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     # Access by key if dict, else find in list
     if isinstance(toolset.tools, dict):
@@ -72,7 +72,7 @@ async def test_list_tables(context: RunContext[DatabaseDeps], mock_client: Async
 
 
 @pytest.mark.asyncio
-async def test_get_schema(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_get_schema(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     if isinstance(toolset.tools, dict):
         tool = toolset.tools["get_schema"]
@@ -89,7 +89,7 @@ async def test_get_schema(context: RunContext[DatabaseDeps], mock_client: AsyncM
 
 
 @pytest.mark.asyncio
-async def test_describe_table(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_describe_table(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     if isinstance(toolset.tools, dict):
         tool = toolset.tools["describe_table"]
@@ -107,7 +107,7 @@ async def test_describe_table(context: RunContext[DatabaseDeps], mock_client: As
 
 
 @pytest.mark.asyncio
-async def test_explain_query(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_explain_query(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     if isinstance(toolset.tools, dict):
         tool = toolset.tools["explain_query"]
@@ -123,7 +123,7 @@ async def test_explain_query(context: RunContext[DatabaseDeps], mock_client: Asy
 
 
 @pytest.mark.asyncio
-async def test_run_sql_query(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_run_sql_query(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     if isinstance(toolset.tools, dict):
         tool = toolset.tools["query"]
@@ -141,7 +141,7 @@ async def test_run_sql_query(context: RunContext[DatabaseDeps], mock_client: Asy
 
 @pytest.mark.asyncio
 async def test_run_sample_sql_query(
-    context: RunContext[DatabaseDeps], mock_client: AsyncMock
+    context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock
 ) -> None:
     toolset = create_database_toolset()
     if isinstance(toolset.tools, dict):
@@ -159,7 +159,9 @@ async def test_run_sample_sql_query(
 
 
 @pytest.mark.asyncio
-async def test_query_truncation(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_query_truncation(
+    context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock
+) -> None:
     toolset = create_database_toolset()
     tool = next(t for t in toolset.tools.values() if t.name == "query")
 
@@ -187,7 +189,7 @@ async def test_query_truncation(context: RunContext[DatabaseDeps], mock_client: 
 
 @pytest.mark.asyncio
 async def test_query_custom_limit(
-    context: RunContext[DatabaseDeps], mock_client: AsyncMock
+    context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock
 ) -> None:
     toolset = create_database_toolset()
     tool = next(t for t in toolset.tools.values() if t.name == "sample_query")
@@ -207,7 +209,7 @@ async def test_query_custom_limit(
 
 @pytest.mark.asyncio
 async def test_sample_query_truncation(
-    context: RunContext[DatabaseDeps], mock_client: AsyncMock
+    context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock
 ) -> None:
     toolset = create_database_toolset()
     tool = next(t for t in toolset.tools.values() if t.name == "sample_query")
@@ -226,7 +228,7 @@ async def test_sample_query_truncation(
 
 
 @pytest.mark.asyncio
-async def test_query_timeout(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+async def test_query_timeout(context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock) -> None:
     toolset = create_database_toolset()
     tool = next(t for t in toolset.tools.values() if t.name == "query")
 
@@ -242,3 +244,26 @@ async def test_query_timeout(context: RunContext[DatabaseDeps], mock_client: Asy
     assert result.columns == []
     assert result.rows == []
     assert result.row_count == 0
+    assert result.execution_time_ms == 0
+
+
+@pytest.mark.asyncio
+async def test_sample_query_timeout(
+    context: RunContext[SQLDatabaseDeps], mock_client: AsyncMock
+) -> None:
+    toolset = create_database_toolset()
+    tool = next(t for t in toolset.tools.values() if t.name == "sample_query")
+
+    async def never_finish(*args, **kwargs):
+        await asyncio.sleep(1)  # long enough to trigger timeout
+
+    mock_client.execute.side_effect = never_finish
+    context.deps.query_timeout = 0.01
+
+    result = await tool.function(context, sql_query="SELECT * FROM users;")
+
+    assert isinstance(result, QueryResult)
+    assert result.columns == []
+    assert result.rows == []
+    assert result.row_count == 0
+    assert result.execution_time_ms == 0
