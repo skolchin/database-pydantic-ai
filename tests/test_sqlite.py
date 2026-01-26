@@ -4,24 +4,24 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from src.sql_toolset_pydantic_ai.sqlite import SQLiteClient
+from src.sql_toolset_pydantic_ai.sqlite import SQLiteDatabase
 from src.sql_toolset_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo, TableInfo
 
 
 # Setup fixture for the client
 @pytest_asyncio.fixture
-async def db_client() -> AsyncGenerator[SQLiteClient, Any]:
+async def db_client() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
-    client = SQLiteClient(":memory:", read_only=False)
+    client = SQLiteDatabase(":memory:", read_only=False)
     await client.connect()
     yield client
     await client.close()
 
 
 @pytest_asyncio.fixture
-async def db_client_read_only() -> AsyncGenerator[SQLiteClient, Any]:
+async def db_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
-    client = SQLiteClient(":memory:")
+    client = SQLiteDatabase(":memory:")
     await client.connect()
     yield client
     await client.close()

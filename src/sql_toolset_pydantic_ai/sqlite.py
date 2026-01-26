@@ -9,7 +9,7 @@ from .types import ColumnInfo, ForeignKeyInfo, QueryResult, SchemaInfo, TableInf
 FORBIDDEN = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "REPLACE", "VACUUM"}
 
 
-class SQLiteClient:
+class SQLiteDatabase:
     def __init__(self, db_path: str, read_only: bool = True) -> None:
         self.db_path = db_path
         self.read_only = read_only

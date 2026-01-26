@@ -1,9 +1,8 @@
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol
 
 from sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
 
 
-@runtime_checkable
 class DatabaseProtocol(Protocol):
     """Protocol for database backends."""
 
@@ -25,16 +24,16 @@ class DatabaseProtocol(Protocol):
         """Execute a SQL query with optional parameters."""
         ...
 
+    async def get_tables(self) -> list[str]:
+        """Get list of tables in the database"""
+        ...
+
     async def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
         """Get information about foreign keys in given table"""
         ...
 
-    async def get_table_info(self, table_name: str) -> TableInfo:
+    async def get_table_info(self, table_name: str) -> TableInfo | None:
         """Get detailed information about a specific table."""
-        ...
-
-    async def get_tables(self) -> list[str]:
-        """Get list of tables in the database"""
         ...
 
     async def get_schema(self) -> SchemaInfo:
