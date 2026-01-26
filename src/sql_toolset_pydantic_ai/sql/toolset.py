@@ -32,7 +32,7 @@ You have access to SQLite database tools for database operations and querying:
 
 
 @dataclass
-class DatabaseDeps:
+class SQLDatabaseDeps:
     """Protocol for dependencies that provide a database backend"""
 
     database: SQLDatabaseProtocol
@@ -42,7 +42,7 @@ class DatabaseDeps:
     id: str | None = None
 
 
-def create_database_toolset(*, id: str | None = None) -> FunctionToolset[DatabaseDeps]:
+def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLDatabaseDeps]:
     """
     Create a database toolset for AI Agents.
 
@@ -70,10 +70,10 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
             deps=deps
         )
     """
-    toolset = FunctionToolset[DatabaseDeps](id=id)
+    toolset = FunctionToolset[SQLDatabaseDeps](id=id)
 
     @toolset.tool
-    async def list_tables(ctx: RunContext[DatabaseDeps]) -> list[str]:
+    async def list_tables(ctx: RunContext[SQLDatabaseDeps]) -> list[str]:
         """
         Get names of all tables in the database to understand available data.
 
@@ -83,7 +83,7 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
         return await ctx.deps.database.get_tables()
 
     @toolset.tool
-    async def get_schema(ctx: RunContext[DatabaseDeps]) -> SchemaInfo:
+    async def get_schema(ctx: RunContext[SQLDatabaseDeps]) -> SchemaInfo:
         """
         Get an overview of the database schema.
 
@@ -93,7 +93,7 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
         return await ctx.deps.database.get_schema()
 
     @toolset.tool
-    async def describe_table(ctx: RunContext[DatabaseDeps], table_name: str) -> TableInfo | None:
+    async def describe_table(ctx: RunContext[SQLDatabaseDeps], table_name: str) -> TableInfo | None:
         """
         Get detailed information about a specific table.
 
@@ -106,7 +106,7 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
         return await ctx.deps.database.get_table_info(table_name)
 
     @toolset.tool
-    async def explain_query(ctx: RunContext[DatabaseDeps], sql_query: str) -> str:
+    async def explain_query(ctx: RunContext[SQLDatabaseDeps], sql_query: str) -> str:
         """
         Get the execution plan for a SQL query without executing it.
 
@@ -125,7 +125,7 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
 
     @toolset.tool
     async def query(
-        ctx: RunContext[DatabaseDeps], sql_query: str, max_rows: int | None = None
+        ctx: RunContext[SQLDatabaseDeps], sql_query: str, max_rows: int | None = None
     ) -> QueryResult:
         """
         Execute a SQL query and return the results.
@@ -167,7 +167,7 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
 
     @toolset.tool
     async def sample_query(
-        ctx: RunContext[DatabaseDeps], sql_query: str, limit: int = 5
+        ctx: RunContext[SQLDatabaseDeps], sql_query: str, limit: int = 5
     ) -> QueryResult:
         """
         Perform a sample query to explore the data stored in database.

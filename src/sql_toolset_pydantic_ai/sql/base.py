@@ -3,7 +3,7 @@ import re
 
 class BaseSQLDatabase:
     """
-    Abstract base clas providing shared utility logic for SQL backends.
+    Abstract base class providing shared utility logic for SQL backends.
     """
 
     FORBIDDEN_KEYS = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "REPLACE", "VACUUM"}
@@ -36,6 +36,7 @@ class BaseSQLDatabase:
 
         return any(sql_clean.startswith(kw) for kw in self.FORBIDDEN_KEYS)
 
+    # TODO discuss if markdown return is scheduled
     # def format_results_as_markdown(self, result: QueryResult) -> str:
     #     """Standardizes how the LLM sees the data."""
     #     if not result.columns:

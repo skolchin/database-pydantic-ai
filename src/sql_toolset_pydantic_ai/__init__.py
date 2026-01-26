@@ -11,8 +11,17 @@ Example:
 
 from importlib.metadata import version
 
-from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
-from sql_toolset_pydantic_ai.sql.toolset import SQL_SYSTEM_PROMPT, create_database_toolset
+# Backends
+from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+
+# Toolsets
+from sql_toolset_pydantic_ai.sql.toolset import (
+    SQL_SYSTEM_PROMPT,
+    SQLDatabaseDeps,
+    create_database_toolset,
+)
+
+# Types
 from sql_toolset_pydantic_ai.types import (
     ColumnInfo,
     ForeignKeyInfo,
@@ -22,10 +31,12 @@ from sql_toolset_pydantic_ai.types import (
 )
 
 __all__ = [
-    # Main factory
+    # SQL Main factory
     "create_database_toolset",
-    # Protocol
-    "SQLDatabaseProtocol",
+    # SQL Main dependencies
+    "SQLDatabaseDeps",
+    # SQL Main clients
+    "SQLiteDatabase",
     # Types
     "QueryResult",
     "TableInfo",
