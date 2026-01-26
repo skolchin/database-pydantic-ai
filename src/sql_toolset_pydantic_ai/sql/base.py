@@ -1,10 +1,7 @@
 import re
-from abc import ABC, abstractmethod
-
-from sql_toolset_pydantic_ai.types import QueryResult
 
 
-class BaseSQLDatabase(ABC):
+class BaseSQLDatabase:
     """
     Abstract base clas providing shared utility logic for SQL backends.
     """
@@ -13,12 +10,6 @@ class BaseSQLDatabase(ABC):
 
     def __init__(self, read_only: bool = True) -> None:
         self.read_only = read_only
-
-    @property
-    @abstractmethod
-    def dialect(self) -> str:
-        """Return `sqlite`, `postgres` etc."""
-        ...
 
     def _is_write_query(self, query: str) -> bool:
         sql = query.upper().strip()
@@ -45,15 +36,15 @@ class BaseSQLDatabase(ABC):
 
         return any(sql_clean.startswith(kw) for kw in self.FORBIDDEN_KEYS)
 
-    def format_results_as_markdown(self, result: QueryResult) -> str:
-        """Standardizes how the LLM sees the data."""
-        if not result.columns:
-            return "Query executed successfully. No rows returned."
+    # def format_results_as_markdown(self, result: QueryResult) -> str:
+    #     """Standardizes how the LLM sees the data."""
+    #     if not result.columns:
+    #         return "Query executed successfully. No rows returned."
 
-        header = "| " + " | ".join(result.columns) + " |"
-        separator = "| " + " | ".join(["---"] * len(result.columns)) + " |"
-        rows = []
-        for row in result.rows:
-            rows.append("| " + " | ".join(map(str, row)) + " |")
+    #     header = "| " + " | ".join(result.columns) + " |"
+    #     separator = "| " + " | ".join(["---"] * len(result.columns)) + " |"
+    #     rows = []
+    #     for row in result.rows:
+    #         rows.append("| " + " | ".join(map(str, row)) + " |")
 
-        return "\n".join([header, separator] + rows)
+    #     return "\n".join([header, separator] + rows)

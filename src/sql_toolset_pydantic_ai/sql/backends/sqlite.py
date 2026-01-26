@@ -1,6 +1,6 @@
 import sqlite3
 import time
-from typing import Any, Literal
+from typing import Any
 
 import aiosqlite
 
@@ -35,9 +35,6 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         if self._connection:
             await self._connection.close()
             self._connection = None
-
-    def dialect(self) -> Literal["SQLiteDatabase"]:
-        return "SQLiteDatabase"
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         if self.read_only and self._is_write_query(query):

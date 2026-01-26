@@ -242,3 +242,26 @@ async def test_query_timeout(context: RunContext[DatabaseDeps], mock_client: Asy
     assert result.columns == []
     assert result.rows == []
     assert result.row_count == 0
+    assert result.execution_time_ms == 0
+
+
+@pytest.mark.asyncio
+async def test_sample_query_timeout(
+    context: RunContext[DatabaseDeps], mock_client: AsyncMock
+) -> None:
+    toolset = create_database_toolset()
+    tool = next(t for t in toolset.tools.values() if t.name == "sample_query")
+
+    async def never_finish(*args, **kwargs):
+        await asyncio.sleep(1)  # long enough to trigger timeout
+
+    mock_client.execute.side_effect = never_finish
+    context.deps.query_timeout = 0.01
+
+    result = await tool.function(context, sql_query="SELECT * FROM users;")
+
+    assert isinstance(result, QueryResult)
+    assert result.columns == []
+    assert result.rows == []
+    assert result.row_count == 0
+    assert result.execution_time_ms == 0
