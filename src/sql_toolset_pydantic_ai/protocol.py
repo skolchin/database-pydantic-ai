@@ -1,6 +1,6 @@
 from typing import Any, Protocol
 
-from sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
+from src.sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
 
 
 class DatabaseProtocol(Protocol):

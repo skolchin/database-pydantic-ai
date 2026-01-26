@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,9 +22,7 @@ def mock_client() -> AsyncMock:
 def deps(mock_client: AsyncMock) -> DatabaseDeps:
     # Instead of a generic AsyncMock, use a real instance or
     # link the database attribute to your mock_client
-    deps = MagicMock(spec=DatabaseDeps)
-    deps.database = mock_client  # <--- This is the missing link
-    return deps
+    return DatabaseDeps(database=mock_client, max_rows=20, query_timeout=1.0)
 
 
 @pytest.fixture
@@ -32,7 +31,6 @@ def context(deps: DatabaseDeps) -> RunContext[DatabaseDeps]:
     # dependent on pydantic-ai version
     ctx = MagicMock(spec=RunContext)
     ctx.deps = deps
-    ctx.deps.max_rows = 20
     return ctx
 
 
@@ -225,3 +223,22 @@ async def test_sample_query_truncation(
 
     assert len(result.rows) == 5
     assert result.row_count == 5
+
+
+@pytest.mark.asyncio
+async def test_query_timeout(context: RunContext[DatabaseDeps], mock_client: AsyncMock) -> None:
+    toolset = create_database_toolset()
+    tool = next(t for t in toolset.tools.values() if t.name == "query")
+
+    async def never_finish(*args, **kwargs):
+        await asyncio.sleep(1)  # long enough to trigger timeout
+
+    mock_client.execute.side_effect = never_finish
+    context.deps.query_timeout = 0.01
+
+    result = await tool.function(context, sql_query="SELECT * FROM users;")
+
+    assert isinstance(result, QueryResult)
+    assert result.columns == []
+    assert result.rows == []
+    assert result.row_count == 0

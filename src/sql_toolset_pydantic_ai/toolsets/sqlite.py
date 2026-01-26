@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from pydantic_ai import FunctionToolset, RunContext
 
-from sql_toolset_pydantic_ai.protocol import DatabaseProtocol
-from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
+from src.sql_toolset_pydantic_ai.protocol import DatabaseProtocol
+from src.sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
 
 SQLITE_SYSTEM_PROMPT = """
 ## SQLite Database Tools
@@ -139,9 +140,21 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
             QueryResults object with queried data.
 
         Example:
-            query("SELECT id, name FROM users WHERE is_banned = true;", limit=10)
+            query("SELECT id, name FROM users WHERE is_banned = true;", max_rows=10)
         """
-        result = await ctx.deps.database.execute(sql_query)
+        try:
+            result = await asyncio.wait_for(
+                ctx.deps.database.execute(sql_query), timeout=ctx.deps.query_timeout
+            )
+
+        except asyncio.TimeoutError:
+            return QueryResult(
+                columns=[],
+                rows=[],
+                row_count=0,
+                execution_time_ms=0,  # indicate max wait with `0`
+            )
+
         limit = max_rows or ctx.deps.max_rows
 
         if len(result.rows) > limit:
@@ -171,7 +184,18 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[Databas
         Example:
             query("SELECT id, name FROM users WHERE is_banned = true;")
         """
-        result = await ctx.deps.database.execute(sql_query)
+        try:
+            result = await asyncio.wait_for(
+                ctx.deps.database.execute(sql_query), timeout=ctx.deps.query_timeout
+            )
+
+        except asyncio.TimeoutError:
+            return QueryResult(
+                columns=[],
+                rows=[],
+                row_count=0,
+                execution_time_ms=0,  # indicate max wait with `0`
+            )
 
         if len(result.rows) > limit:
             result = QueryResult(
