@@ -209,3 +209,5 @@ __marimo__/
 # Custom
 .github/templates
 .vscode
+local
+.DS_Store
