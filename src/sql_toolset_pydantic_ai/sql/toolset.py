@@ -1,17 +1,15 @@
-"""SQLite toolset for AI agents used to inference with database on given permission level"""
-
-from __future__ import annotations
+"""PydanticAI toolset for AI agents used to inference with database on given permission level"""
 
 import asyncio
 from dataclasses import dataclass
 
 from pydantic_ai import FunctionToolset, RunContext
 
-from src.sql_toolset_pydantic_ai.protocol import DatabaseProtocol
-from src.sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
+from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
 
-SQLITE_SYSTEM_PROMPT = """
-## SQLite Database Tools
+SQL_SYSTEM_PROMPT = """
+## SQL Database Toolset
 
 ### IMPORTANT
 * Database may be running in READ-ONLY mode
@@ -37,7 +35,7 @@ You have access to SQLite database tools for database operations and querying:
 class DatabaseDeps:
     """Protocol for dependencies that provide a database backend"""
 
-    database: DatabaseProtocol
+    database: SQLDatabaseProtocol
     read_only: bool = True
     max_rows: int = 100
     query_timeout: float = 30.0

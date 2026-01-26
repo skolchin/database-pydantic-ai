@@ -4,17 +4,17 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pydantic_ai import RunContext
 
-from src.sql_toolset_pydantic_ai.protocol import DatabaseProtocol
-from src.sql_toolset_pydantic_ai.toolsets.sqlite import (
+from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from sql_toolset_pydantic_ai.sql.toolset import (
     DatabaseDeps,
     create_database_toolset,
 )
-from src.sql_toolset_pydantic_ai.types import QueryResult
+from sql_toolset_pydantic_ai.types import QueryResult
 
 
 @pytest.fixture
 def mock_client() -> AsyncMock:
-    client = AsyncMock(spec=DatabaseProtocol)
+    client = AsyncMock(spec=SQLDatabaseProtocol)
     return client
 
 
