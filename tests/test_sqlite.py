@@ -10,7 +10,7 @@ from sql_toolset_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo
 
 # Setup fixture for the client
 @pytest_asyncio.fixture
-async def db_client() -> AsyncGenerator[SQLiteDatabase, Any]:
+async def sqlite_client() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
     client = SQLiteDatabase(":memory:", read_only=False)
     await client.connect()
@@ -19,7 +19,7 @@ async def db_client() -> AsyncGenerator[SQLiteDatabase, Any]:
 
 
 @pytest_asyncio.fixture
-async def db_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
+async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
     client = SQLiteDatabase(":memory:")
     await client.connect()
@@ -32,20 +32,20 @@ async def db_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_basic(db_client_read_only) -> None:
+async def test_read_client_with_write_query_basic(sqlite_client_read_only) -> None:
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
     assert str(exc_info.value) == "Database is in read-only mode"
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_comment(db_client_read_only) -> None:
+async def test_read_client_with_write_query_start_comment(sqlite_client_read_only) -> None:
     # Leading block comment
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "/* comments here */ INSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
@@ -53,10 +53,10 @@ async def test_read_client_with_write_query_start_comment(db_client_read_only) -
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_hyphen(db_client_read_only) -> None:
+async def test_read_client_with_write_query_start_hyphen(sqlite_client_read_only) -> None:
     # Leading line comment
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "-- comment line\nINSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
@@ -64,10 +64,10 @@ async def test_read_client_with_write_query_start_hyphen(db_client_read_only) ->
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_mixed_case(db_client_read_only) -> None:
+async def test_read_client_with_write_query_mixed_case(sqlite_client_read_only) -> None:
     # Mixed case and leading spaces/comments
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "   -- comment\nInSeRt INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
@@ -75,10 +75,10 @@ async def test_read_client_with_write_query_mixed_case(db_client_read_only) -> N
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_with(db_client_read_only) -> None:
+async def test_read_client_with_write_query_start_with(sqlite_client_read_only) -> None:
     # CTE with forbidden keyword inside
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "WITH x AS (SELECT * FROM users) "
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
@@ -86,10 +86,10 @@ async def test_read_client_with_write_query_start_with(db_client_read_only) -> N
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_inline_comment(db_client_read_only) -> None:
+async def test_read_client_with_write_query_inline_comment(sqlite_client_read_only) -> None:
     # Inline comment in the middle of the query
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "INSERT INTO users (id, /* comment */ name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
@@ -97,10 +97,10 @@ async def test_read_client_with_write_query_inline_comment(db_client_read_only) 
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_multiline_cte(db_client_read_only) -> None:
+async def test_read_client_with_write_query_multiline_cte(sqlite_client_read_only) -> None:
     # Multi-line CTE with INSERT after
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             """
             WITH cte AS (
                 SELECT id, name FROM users
@@ -113,10 +113,10 @@ async def test_read_client_with_write_query_multiline_cte(db_client_read_only) -
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_whitespace_variants(db_client_read_only) -> None:
+async def test_read_client_with_write_query_whitespace_variants(sqlite_client_read_only) -> None:
     # Leading/trailing whitespace and line breaks
     with pytest.raises(PermissionError) as exc_info:
-        await db_client_read_only.execute(
+        await sqlite_client_read_only.execute(
             "  \n\tINSERT  INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
     assert str(exc_info.value) == "Database is in read-only mode"
@@ -126,16 +126,16 @@ async def test_read_client_with_write_query_whitespace_variants(db_client_read_o
 
 
 @pytest.mark.asyncio
-async def test_client_closure(db_client) -> None:
-    await db_client.close()
-    assert db_client._connection is None
+async def test_client_closure(sqlite_client) -> None:
+    await sqlite_client.close()
+    assert sqlite_client._connection is None
 
 
 @pytest.mark.asyncio
-async def test_execute_create_table(db_client) -> None:
+async def test_execute_create_table(sqlite_client) -> None:
     # Act
-    await db_client.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT);")
-    res = await db_client.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    await sqlite_client.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT);")
+    res = await sqlite_client.execute("SELECT name FROM sqlite_master WHERE type='table';")
 
     # Assert
     assert res is not None
@@ -144,15 +144,15 @@ async def test_execute_create_table(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity(db_client) -> None:
+async def test_relationship_integrity(sqlite_client) -> None:
     # Act
-    await db_client.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT)")
-    await db_client.execute(
+    await sqlite_client.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT)")
+    await sqlite_client.execute(
         "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
     )
-    tables = await db_client.get_tables()
-    res = await db_client.get_foreign_keys("orders")
+    tables = await sqlite_client.get_tables()
+    res = await sqlite_client.get_foreign_keys("orders")
 
     # Assert
     assert res is not None
@@ -164,10 +164,10 @@ async def test_relationship_integrity(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity_empty_table(db_client) -> None:
+async def test_relationship_integrity_empty_table(sqlite_client) -> None:
     # Act
-    tables = await db_client.get_tables()
-    fk = await db_client.get_foreign_keys("table")
+    tables = await sqlite_client.get_tables()
+    fk = await sqlite_client.get_foreign_keys("table")
 
     # Assert
     assert tables is not None
@@ -180,17 +180,17 @@ async def test_relationship_integrity_empty_table(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_info(db_client) -> None:
+async def test_get_table_info(sqlite_client) -> None:
     # Act
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
     )
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
     )
-    res_users = await db_client.get_table_info("users")
-    res_orders = await db_client.get_table_info("orders")
+    res_users = await sqlite_client.get_table_info("users")
+    res_orders = await sqlite_client.get_table_info("orders")
 
     # Assert
     assert res_users is not None
@@ -222,29 +222,29 @@ async def test_get_table_info(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_info_no_table(db_client) -> None:
+async def test_get_table_info_no_table(sqlite_client) -> None:
     # Act
-    res = await db_client.get_table_info("some_table")
+    res = await sqlite_client.get_table_info("some_table")
 
     # Assert
     assert res is None
 
 
 @pytest.mark.asyncio
-async def test_get_tables(db_client) -> None:
+async def test_get_tables(sqlite_client) -> None:
     # Act
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
     )
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
     )
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price INTEGER, "
         "FOREIGN KEY (name) REFERENCES orders (product));"
     )
-    res = await db_client.get_tables()
+    res = await sqlite_client.get_tables()
 
     # Assert
     assert res is not None
@@ -253,9 +253,9 @@ async def test_get_tables(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tables_no_tables(db_client) -> None:
+async def test_get_tables_no_tables(sqlite_client) -> None:
     # Act
-    res = await db_client.get_tables()
+    res = await sqlite_client.get_tables()
 
     # Assert
     assert res is not None
@@ -264,21 +264,21 @@ async def test_get_tables_no_tables(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(db_client) -> None:
+async def test_get_schema(sqlite_client) -> None:
     # Act
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
     )
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
     )
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE products (main_key INTEGER PRIMARY KEY, name BLOB NOT NULL, price REAL, "
         "FOREIGN KEY (name) REFERENCES orders (product));"
     )
-    await db_client.execute("INSERT INTO users ('name', 'city') VALUES ('test', 'TestCity')")
-    res = await db_client.get_schema()
+    await sqlite_client.execute("INSERT INTO users ('name', 'city') VALUES ('test', 'TestCity')")
+    res = await sqlite_client.get_schema()
 
     # Assert
     assert res is not None
@@ -322,9 +322,9 @@ async def test_get_schema(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema_no_tables(db_client) -> None:
+async def test_get_schema_no_tables(sqlite_client) -> None:
     # Act
-    res = await db_client.get_schema()
+    res = await sqlite_client.get_schema()
 
     # Assert
     assert res is not None
@@ -332,14 +332,14 @@ async def test_get_schema_no_tables(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain(db_client) -> None:
+async def test_explain(sqlite_client) -> None:
     # Act
-    await db_client.execute(
+    await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
     )
-    await db_client.execute("INSERT INTO users ('name', 'city') VALUES ('test', 'TestCity');")
+    await sqlite_client.execute("INSERT INTO users ('name', 'city') VALUES ('test', 'TestCity');")
 
-    res = await db_client.explain("SELECT COUNT(*) FROM users;")
+    res = await sqlite_client.explain("SELECT COUNT(*) FROM users;")
 
     # Assert
     assert res is not None
@@ -348,9 +348,9 @@ async def test_explain(db_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain_random(db_client) -> None:
+async def test_explain_random(sqlite_client) -> None:
     # Act
-    res = await db_client.explain("random_query")
+    res = await sqlite_client.explain("random_query")
 
     # Assert
     assert res is not None

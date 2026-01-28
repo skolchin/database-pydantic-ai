@@ -11,6 +11,9 @@ class QueryResult:
     row_count: int
     execution_time_ms: float
 
+    def __len__(self) -> int:
+        return len(self.rows)
+
 
 @dataclass
 class TableInfo:
