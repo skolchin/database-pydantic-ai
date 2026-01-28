@@ -1,3 +1,4 @@
+import asyncio
 import sqlite3
 import time
 from typing import Any
@@ -22,6 +23,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         self._connection: aiosqlite.Connection | None = None
 
     async def connect(self) -> None:
+        """Connect to the database"""
         if not self._connection:
             if self.read_only:
                 self._connection = await aiosqlite.connect(f"file:{self.db_path}?mode=ro", uri=True)
@@ -32,11 +34,13 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             self._connection.row_factory = sqlite3.Row
 
     async def close(self) -> None:
+        """Close database connection."""
         if self._connection:
             await self._connection.close()
             self._connection = None
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
+        """Execute a SQL query with optional parameters."""
         if self.read_only and self._is_write_query(query):
             raise PermissionError("Database is in read-only mode")
 
@@ -61,6 +65,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             )
 
     async def get_tables(self) -> list[str]:
+        """Get list of tables in the public schema."""
         # Fetch all table names from the database
         query = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';"
         res = await self.execute(query)
@@ -72,6 +77,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         return tables
 
     async def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
+        """Get information about foreign keys in given table"""
         tables = await self.get_tables()
         if table_name not in tables:
             return []
@@ -88,6 +94,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         return foreign_keys
 
     async def get_table_info(self, table_name: str) -> TableInfo | None:
+        """Get detailed information about a specific table."""
         tables = await self.get_tables()
         if table_name not in tables:
             return None
@@ -128,13 +135,14 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         )
 
     async def get_schema(self) -> SchemaInfo:
+        """Get database schema information."""
         table_names = await self.get_tables()
-        tables = []
-        for table_name in table_names:
-            table_info = await self.get_table_info(table_name)
-            tables.append(table_info)
 
-        return SchemaInfo(tables=tables)
+        tasks = [self.get_table_info(table_name) for table_name in table_names]
+        tables = await asyncio.gather(*tasks)
+
+        # Filter out empty responses in the output
+        return SchemaInfo(tables=[t for t in tables if t])
 
     async def explain(self, query: str) -> str:
         query = f"EXPLAIN QUERY PLAN {query}"
