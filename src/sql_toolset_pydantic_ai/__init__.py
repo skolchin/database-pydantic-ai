@@ -12,6 +12,7 @@ Example:
 from importlib.metadata import version
 
 # Backends
+from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
 from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 
 # Toolsets
@@ -37,6 +38,7 @@ __all__ = [
     "SQLDatabaseDeps",
     # SQL Main clients
     "SQLiteDatabase",
+    "PostgreSQLDatabase",
     # Types
     "QueryResult",
     "TableInfo",

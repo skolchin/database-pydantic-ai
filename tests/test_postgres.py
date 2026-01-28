@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from typing import Any
 
 import pytest
@@ -8,50 +8,73 @@ from testcontainers.postgres import PostgresContainer
 from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
 from sql_toolset_pydantic_ai.types import ForeignKeyInfo, SchemaInfo
 
-# TODO tests require docker and testcontainers
+
+### FIXTURES ###
+# Start the container ONCE for the whole test session
+@pytest.fixture(scope="session")
+def postgres_container() -> Generator[PostgresContainer, Any, None]:
+    container = PostgresContainer("postgres:16-alpine")
+    container.start()
+    yield container
+    container.stop()
 
 
 # Setup fixture for the client
+@pytest_asyncio.fixture(scope="function")
+async def pg_db(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+    host = postgres_container.get_container_host_ip()
+    port = postgres_container.get_exposed_port(5432)
+
+    db = PostgreSQLDatabase(
+        user=postgres_container.username,
+        password=postgres_container.password,
+        db=postgres_container.dbname,
+        host=f"{host}:{port}",
+        read_only=False,
+    )
+
+    await db.connect()
+    await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
+    yield db
+
+    # CLEANUP: Close connection
+    await db.close()
+
+
 @pytest_asyncio.fixture
-async def pg_db() -> AsyncGenerator[PostgreSQLDatabase, Any]:
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        host = f"{postgres.get_container_host_ip()}:{postgres.get_exposed_port(5432)}"
+async def pg_db_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+    host = postgres_container.get_container_host_ip()
+    port = postgres_container.get_exposed_port(5432)
 
-        pg_db = PostgreSQLDatabase(
-            user=postgres.username,
-            password=postgres.password,
-            db=postgres.dbname,
-            host=host,
-            read_only=False,
-        )
+    db = PostgreSQLDatabase(
+        user=postgres_container.username,
+        password=postgres_container.password,
+        db=postgres_container.dbname,
+        host=f"{host}:{port}",
+        read_only=False,
+    )
 
-        await pg_db.connect()
-        yield pg_db
-        await pg_db.close()
+    # Create a "Setup" client that IS allowed to write
+    await db.connect()
+    await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
+    await db.close()
 
+    # Create the ACTUAL client we want to test (Read-Only)
+    test_db = PostgreSQLDatabase(
+        user=postgres_container.username,
+        password=postgres_container.password,
+        db=postgres_container.dbname,
+        host=f"{host}:{port}",
+        read_only=True,  # This is what we are testing
+    )
+    await test_db.connect()
 
-@pytest_asyncio.fixture
-async def pg_db_read_only() -> AsyncGenerator[PostgreSQLDatabase, Any]:
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        host = f"{postgres.get_container_host_ip()}:{postgres.get_exposed_port(5432)}"
-
-        pg_db = PostgreSQLDatabase(
-            user=postgres.username,
-            password=postgres.password,
-            db=postgres.dbname,
-            host=host,
-            read_only=True,
-        )
-
-        await pg_db.connect()
-        yield pg_db
-        await pg_db.close()
+    yield test_db
+    await test_db.close()
 
 
 ### TESTS ###
 ## READ-ONLY ##
-
-
 @pytest.mark.asyncio
 async def test_read_client_with_write_query_basic(pg_db_read_only) -> None:
     # Basic INSERT
@@ -399,6 +422,6 @@ async def test_explain_random(pg_db) -> None:
 @pytest.mark.asyncio
 async def test_context_manager(pg_db) -> None:
     async with pg_db as postgres:
-        postgres.explain("random_query")
+        await postgres.explain("random_query")
 
     assert not pg_db._pool
