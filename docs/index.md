@@ -15,6 +15,9 @@ A powerful PydanticAI toolset designed to empower AI agents with SQL database ca
 
 Connect a PydanticAI agent to a SQLite database in just a few lines of code:
 
+> [!WARNING]
+> This example assumes you have an existing database file. If you don't, you can create a sample one by running the setup script in `examples/sql/sqlite/setup_db.py`.
+
 ```python
 import asyncio
 from pydantic_ai import Agent
