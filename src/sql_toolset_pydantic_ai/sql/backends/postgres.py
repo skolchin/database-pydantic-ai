@@ -50,7 +50,15 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         command_timeout: float = 60.0,
         timeout: float = 120.0,
     ) -> asyncpg.Pool:
-        """Connect to the database"""
+        """
+        Connect to the database.
+
+        Args:
+            min_size: Minimum size of the connection pool.
+            max_size: Maximum size of the connection pool.
+            command_timeout: Timeout for individual queries in seconds.
+            timeout: Timeout for establishing the connection in seconds.
+        """
         if not self._pool:
             self._pool = await asyncpg.create_pool(
                 self.dsn,

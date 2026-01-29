@@ -10,11 +10,39 @@ cd sql-toolset-pydantic-ai
 make install
 ```
 
+### Local CI Testing
+
+This project uses [act](https://github.com/nektos/act) to run GitHub Actions locally. This is highly recommended for testing CI changes before pushing.
+
+#### Prerequisites for `act`
+
+1.  **Docker**: Ensure Docker is installed and running.
+2.  **Install `act`**:
+    *   **macOS**: `brew install act`
+    *   **Linux**: `curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash`
+
+#### Configuration & First Run
+
+The project includes a `.actrc` configuration file that sets up the environment automatically.
+
+> [!NOTE]
+> **First Run Warning**: We use the `ghcr.io/catthehacker/ubuntu:full-latest` image to closely match the GitHub Actions environment. This image is **large (~20GB)**. The first time you run `make actions`, the download may take a while.
+
+> [!IMPORTANT]
+> **Apple Silicon (M1/M2/M3) Users**: The configuration forces `linux/amd64` architecture (`--container-architecture linux/amd64`) to ensure compatibility with `testcontainers` and Python wheels. Ensure your Docker settings allow for x86_64 emulation (Rosetta for Linux is recommended on Docker Desktop).
+
+#### Running Actions
+
+```bash
+# Run all CI checks locally (uses the configuration from .actrc)
+make actions
+```
+
 ## Running Tests
 
 ```bash
 make test        # Run tests with coverage
-make all         # Run format + lint + typecheck + test
+make all         # Run format + lint + typecheck + typecheck-mypy + test
 ```
 
 ## Requirements
@@ -38,7 +66,9 @@ All PRs must meet these requirements:
 | `make format` | Format code using Ruff |
 | `make typecheck` | Run Pyright |
 | `make typecheck-mypy` | Run MyPy |
-| `make all` | Run all checks (format, lint, typecheck, test) |
+| `make all` | Run all checks (format, lint, typecheck, typecheck-mypy, test) |
+| `make actions` | Run GitHub Actions locally with `act` |
+| `make clear` | Clean build artifacts |
 | `make run-example-sqlite` | Run the SQLite example |
 | `make run-example-postgres` | Run the PostgreSQL example |
 
