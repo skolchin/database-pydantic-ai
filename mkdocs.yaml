@@ -139,7 +139,7 @@ extra:
       link: https://github.com/vstorm-co/sql-toolset-pydantic-ai
       name: GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/pydantic-deep/
+      link: https://pypi.org/project/sql-toolset-pydantic-ai/
       name: PyPI
   analytics:
     provider: google

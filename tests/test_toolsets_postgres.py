@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from pydantic_ai import RunContext, RunUsage
+from pydantic_ai import FunctionToolset, RunContext, RunUsage, Tool
 from pydantic_ai.models.test import TestModel
 from testcontainers.postgres import PostgresContainer
 
@@ -20,7 +20,7 @@ MODEL = TestModel()
 
 
 ### HELPERS ###
-def get_tool(toolset, name):
+def get_tool(toolset: FunctionToolset[SQLDatabaseDeps], name: str) -> Tool[Any]:
     tools = toolset.tools if isinstance(toolset.tools, list) else toolset.tools.values()
     return next(t for t in tools if t.name == name)
 
@@ -37,7 +37,9 @@ def postgres_container() -> Generator[PostgresContainer, Any, None]:
 
 # Provide a clean Database instance for each individual test
 @pytest_asyncio.fixture(scope="function")
-async def pg_client(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_client(
+    postgres_container: PostgresContainer,
+) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
 
@@ -62,7 +64,9 @@ async def pg_client(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, An
 
 
 @pytest_asyncio.fixture(scope="function")
-async def pg_client_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_client_read_only(
+    postgres_container: PostgresContainer,
+) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = (
         f"{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}"
     )
@@ -255,6 +259,8 @@ async def test_run_sample_sql_query_limit(
     result = await tool.function(context, sql_query="SELECT * FROM users", limit=1)
 
     # Assert individually due to execution time being present
+    assert response is not None
+    assert result is not None
     assert response.columns == result.columns
     assert response.rows != result.rows
     assert response.row_count != result.row_count

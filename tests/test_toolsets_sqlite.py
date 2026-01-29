@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from pydantic_ai import RunContext, RunUsage
+from pydantic_ai import FunctionToolset, RunContext, RunUsage, Tool
 from pydantic_ai.models.test import TestModel
 
 from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
@@ -19,7 +19,7 @@ MODEL = TestModel()
 
 
 ### HELPERS ###
-def get_tool(toolset, name):
+def get_tool(toolset: FunctionToolset[SQLDatabaseDeps], name: str) -> Tool[Any]:
     tools = toolset.tools if isinstance(toolset.tools, list) else toolset.tools.values()
     return next(t for t in tools if t.name == name)
 

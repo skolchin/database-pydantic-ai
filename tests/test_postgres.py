@@ -21,7 +21,7 @@ def postgres_container() -> Generator[PostgresContainer, Any, None]:
 
 # Setup fixture for the client
 @pytest_asyncio.fixture(scope="function")
-async def pg_db(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_db(postgres_container: PostgresContainer) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
 
@@ -42,7 +42,9 @@ async def pg_db(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
 
 
 @pytest_asyncio.fixture
-async def pg_db_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_db_read_only(
+    postgres_container: PostgresContainer,
+) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
 
@@ -76,7 +78,7 @@ async def pg_db_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDataba
 ### TESTS ###
 ## READ-ONLY ##
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_basic(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_basic(pg_db_read_only: PostgreSQLDatabase) -> None:
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -86,7 +88,9 @@ async def test_read_client_with_write_query_basic(pg_db_read_only) -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_comment(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_start_comment(
+    pg_db_read_only: PostgreSQLDatabase,
+) -> None:
     # Leading block comment
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -97,7 +101,9 @@ async def test_read_client_with_write_query_start_comment(pg_db_read_only) -> No
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_hyphen(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_start_hyphen(
+    pg_db_read_only: PostgreSQLDatabase,
+) -> None:
     # Leading line comment
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -108,7 +114,7 @@ async def test_read_client_with_write_query_start_hyphen(pg_db_read_only) -> Non
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_mixed_case(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_mixed_case(pg_db_read_only: PostgreSQLDatabase) -> None:
     # Mixed case and leading spaces/comments
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -119,7 +125,7 @@ async def test_read_client_with_write_query_mixed_case(pg_db_read_only) -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_with(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_start_with(pg_db_read_only: PostgreSQLDatabase) -> None:
     # CTE with forbidden keyword inside
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -130,7 +136,9 @@ async def test_read_client_with_write_query_start_with(pg_db_read_only) -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_inline_comment(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_inline_comment(
+    pg_db_read_only: PostgreSQLDatabase,
+) -> None:
     # Inline comment in the middle of the query
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -141,7 +149,9 @@ async def test_read_client_with_write_query_inline_comment(pg_db_read_only) -> N
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_multiline_cte(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_multiline_cte(
+    pg_db_read_only: PostgreSQLDatabase,
+) -> None:
     # Multi-line CTE with INSERT after
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -157,7 +167,9 @@ async def test_read_client_with_write_query_multiline_cte(pg_db_read_only) -> No
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_whitespace_variants(pg_db_read_only) -> None:
+async def test_read_client_with_write_query_whitespace_variants(
+    pg_db_read_only: PostgreSQLDatabase,
+) -> None:
     # Leading/trailing whitespace and line breaks
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -167,16 +179,14 @@ async def test_read_client_with_write_query_whitespace_variants(pg_db_read_only)
 
 
 ## READ & WRITE ##
-
-
 @pytest.mark.asyncio
-async def test_client_closure(pg_db) -> None:
+async def test_client_closure(pg_db: PostgreSQLDatabase) -> None:
     await pg_db.close()
     assert pg_db._pool is None
 
 
 @pytest.mark.asyncio
-async def test_execute_create_table(pg_db) -> None:
+async def test_execute_create_table(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute("CREATE TABLE users(id SERIAL PRIMARY KEY, name TEXT);")
     res = await pg_db.execute(
@@ -196,7 +206,7 @@ async def test_execute_create_table(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity(pg_db) -> None:
+async def test_relationship_integrity(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute("CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT)")
     await pg_db.execute(
@@ -216,7 +226,7 @@ async def test_relationship_integrity(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity_empty_table(pg_db) -> None:
+async def test_relationship_integrity_empty_table(pg_db: PostgreSQLDatabase) -> None:
     # Act
     tables = await pg_db.get_tables()
     fk = await pg_db.get_foreign_keys("table")
@@ -232,7 +242,7 @@ async def test_relationship_integrity_empty_table(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_info(pg_db) -> None:
+async def test_get_table_info(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -256,16 +266,18 @@ async def test_get_table_info(pg_db) -> None:
     assert res_users.foreign_keys == []
 
     # Orders
+    assert res_orders is not None
     assert res_orders.name == "orders"
     assert not res_orders.columns[1].is_primary_key
     assert res_orders.columns[2].data_type == "text"
+    assert isinstance(res_orders.foreign_keys, list)
     assert len(res_orders.foreign_keys) == 1
     assert res_orders.foreign_keys[0].column == "user_id"
     assert res_orders.foreign_keys[0].references_table == "users"
 
 
 @pytest.mark.asyncio
-async def test_get_table_info_no_table(pg_db) -> None:
+async def test_get_table_info_no_table(pg_db: PostgreSQLDatabase) -> None:
     # Act
     res = await pg_db.get_table_info("some_table")
 
@@ -274,7 +286,7 @@ async def test_get_table_info_no_table(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tables(pg_db) -> None:
+async def test_get_tables(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         """
@@ -312,7 +324,7 @@ async def test_get_tables(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tables_no_tables(pg_db) -> None:
+async def test_get_tables_no_tables(pg_db: PostgreSQLDatabase) -> None:
     # Act
     res = await pg_db.get_tables()
 
@@ -323,7 +335,7 @@ async def test_get_tables_no_tables(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(pg_db) -> None:
+async def test_get_schema(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         """
@@ -369,6 +381,7 @@ async def test_get_schema(pg_db) -> None:
     orders_table = next(t for t in res.tables if t.name == "orders")
     assert orders_table.row_count == 0
     assert orders_table.primary_key == ["id"]
+    assert isinstance(orders_table.foreign_keys, list)
     assert len(orders_table.foreign_keys) == 1
     assert orders_table.foreign_keys[0].column == "user_id"
     assert orders_table.foreign_keys[0].references_table == "users"
@@ -383,7 +396,7 @@ async def test_get_schema(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema_no_tables(pg_db) -> None:
+async def test_get_schema_no_tables(pg_db: PostgreSQLDatabase) -> None:
     # Act
     res = await pg_db.get_schema()
 
@@ -393,7 +406,7 @@ async def test_get_schema_no_tables(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain(pg_db) -> None:
+async def test_explain(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -409,7 +422,7 @@ async def test_explain(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain_random(pg_db) -> None:
+async def test_explain_random(pg_db: PostgreSQLDatabase) -> None:
     # Act
     res = await pg_db.explain("random_query")
 
@@ -420,7 +433,7 @@ async def test_explain_random(pg_db) -> None:
 
 
 @pytest.mark.asyncio
-async def test_context_manager(pg_db) -> None:
+async def test_context_manager(pg_db: PostgreSQLDatabase) -> None:
     async with pg_db as postgres:
         await postgres.explain("random_query")
 

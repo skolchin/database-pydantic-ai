@@ -35,10 +35,10 @@ typecheck:
 	uv run pyright
 
 typecheck-mypy:
-	uv run mypy src
+	uv run mypy src tests
 
 # Run all checks
-all: format lint typecheck typecheck-mypy test
+all: format lint typecheck typecheck-mypy typecheck test
 
 # Run examples
 run-example-sqlite:

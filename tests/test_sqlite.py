@@ -32,7 +32,7 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_basic(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_basic(sqlite_client_read_only: SQLiteDatabase) -> None:
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -42,7 +42,9 @@ async def test_read_client_with_write_query_basic(sqlite_client_read_only) -> No
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_comment(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_start_comment(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Leading block comment
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -53,7 +55,9 @@ async def test_read_client_with_write_query_start_comment(sqlite_client_read_onl
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_hyphen(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_start_hyphen(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Leading line comment
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -64,7 +68,9 @@ async def test_read_client_with_write_query_start_hyphen(sqlite_client_read_only
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_mixed_case(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_mixed_case(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Mixed case and leading spaces/comments
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -75,7 +81,9 @@ async def test_read_client_with_write_query_mixed_case(sqlite_client_read_only) 
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_start_with(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_start_with(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # CTE with forbidden keyword inside
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -86,7 +94,9 @@ async def test_read_client_with_write_query_start_with(sqlite_client_read_only) 
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_inline_comment(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_inline_comment(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Inline comment in the middle of the query
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -97,7 +107,9 @@ async def test_read_client_with_write_query_inline_comment(sqlite_client_read_on
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_multiline_cte(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_multiline_cte(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Multi-line CTE with INSERT after
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -113,7 +125,9 @@ async def test_read_client_with_write_query_multiline_cte(sqlite_client_read_onl
 
 
 @pytest.mark.asyncio
-async def test_read_client_with_write_query_whitespace_variants(sqlite_client_read_only) -> None:
+async def test_read_client_with_write_query_whitespace_variants(
+    sqlite_client_read_only: SQLiteDatabase,
+) -> None:
     # Leading/trailing whitespace and line breaks
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -126,13 +140,13 @@ async def test_read_client_with_write_query_whitespace_variants(sqlite_client_re
 
 
 @pytest.mark.asyncio
-async def test_client_closure(sqlite_client) -> None:
+async def test_client_closure(sqlite_client: SQLiteDatabase) -> None:
     await sqlite_client.close()
     assert sqlite_client._connection is None
 
 
 @pytest.mark.asyncio
-async def test_execute_create_table(sqlite_client) -> None:
+async def test_execute_create_table(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute("CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT);")
     res = await sqlite_client.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -144,7 +158,7 @@ async def test_execute_create_table(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity(sqlite_client) -> None:
+async def test_relationship_integrity(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT)")
     await sqlite_client.execute(
@@ -164,7 +178,7 @@ async def test_relationship_integrity(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_relationship_integrity_empty_table(sqlite_client) -> None:
+async def test_relationship_integrity_empty_table(sqlite_client: SQLiteDatabase) -> None:
     # Act
     tables = await sqlite_client.get_tables()
     fk = await sqlite_client.get_foreign_keys("table")
@@ -180,7 +194,7 @@ async def test_relationship_integrity_empty_table(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_info(sqlite_client) -> None:
+async def test_get_table_info(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -222,7 +236,7 @@ async def test_get_table_info(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_info_no_table(sqlite_client) -> None:
+async def test_get_table_info_no_table(sqlite_client: SQLiteDatabase) -> None:
     # Act
     res = await sqlite_client.get_table_info("some_table")
 
@@ -231,7 +245,7 @@ async def test_get_table_info_no_table(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tables(sqlite_client) -> None:
+async def test_get_tables(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -253,7 +267,7 @@ async def test_get_tables(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_tables_no_tables(sqlite_client) -> None:
+async def test_get_tables_no_tables(sqlite_client: SQLiteDatabase) -> None:
     # Act
     res = await sqlite_client.get_tables()
 
@@ -264,7 +278,7 @@ async def test_get_tables_no_tables(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(sqlite_client) -> None:
+async def test_get_schema(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -322,7 +336,7 @@ async def test_get_schema(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema_no_tables(sqlite_client) -> None:
+async def test_get_schema_no_tables(sqlite_client: SQLiteDatabase) -> None:
     # Act
     res = await sqlite_client.get_schema()
 
@@ -332,7 +346,7 @@ async def test_get_schema_no_tables(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain(sqlite_client) -> None:
+async def test_explain(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -348,7 +362,7 @@ async def test_explain(sqlite_client) -> None:
 
 
 @pytest.mark.asyncio
-async def test_explain_random(sqlite_client) -> None:
+async def test_explain_random(sqlite_client: SQLiteDatabase) -> None:
     # Act
     res = await sqlite_client.explain("random_query")
 
