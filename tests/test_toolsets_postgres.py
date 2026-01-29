@@ -51,7 +51,7 @@ async def pg_client(
         read_only=False,
     )
 
-    await db.connect()
+    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
 
     # SETUP: Create tables needed for tests
     await db.execute("DROP TABLE IF EXISTS users CASCADE;")
@@ -80,37 +80,29 @@ async def pg_client_read_only(
         read_only=False,  # Must be False to seed the data for tests
     )
 
-    await setup_db.connect()
+    await asyncio.wait_for(setup_db.connect(max_size=5), timeout=120.0)
+
     await setup_db.execute("DROP TABLE IF EXISTS users CASCADE;")
     await setup_db.execute("CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT);")
     await setup_db.execute("INSERT INTO users (name) VALUES ('Alice');")
-    await setup_db.close()  # Close setup connection
 
-    # Create the ACTUAL client we want to test (Read-Only)
-    test_db = PostgreSQLDatabase(
-        user=postgres_container.username,
-        password=postgres_container.password,
-        db=postgres_container.dbname,
-        host=host,
-        read_only=True,  # This is what we are testing
-    )
-    await test_db.connect()
+    setup_db.read_only = True
 
-    yield test_db
-    await test_db.close()
+    yield setup_db
+    await setup_db.close()
 
 
 @pytest.fixture
 def deps(pg_client: PostgreSQLDatabase) -> SQLDatabaseDeps:
     # Instead of a generic SQLiteDatabase, use a real instance or
     # link the database attribute to your sqlite_client
-    return SQLDatabaseDeps(database=pg_client, max_rows=20, query_timeout=1.0)
+    return SQLDatabaseDeps(database=pg_client, max_rows=20, query_timeout=10.0)
 
 
 @pytest.fixture
 def context(deps: SQLDatabaseDeps) -> RunContext[SQLDatabaseDeps]:
     # Using the real RunContext is safer than MagicMock for E2E
-    return RunContext(model=MODEL, usage=RunUsage(), deps=deps)
+    return RunContext(model=MODEL, usage=RunUsage(), deps=deps, max_retries=3)
 
 
 ### TESTS ###

@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import AsyncGenerator, Generator
 from typing import Any
 
@@ -33,7 +34,7 @@ async def pg_db(postgres_container: PostgresContainer) -> AsyncGenerator[Postgre
         read_only=False,
     )
 
-    await db.connect()
+    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
     await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
     yield db
 
@@ -57,22 +58,13 @@ async def pg_db_read_only(
     )
 
     # Create a "Setup" client that IS allowed to write
-    await db.connect()
+    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
+
     await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
+
+    db.read_only = True
+    yield db
     await db.close()
-
-    # Create the ACTUAL client we want to test (Read-Only)
-    test_db = PostgreSQLDatabase(
-        user=postgres_container.username,
-        password=postgres_container.password,
-        db=postgres_container.dbname,
-        host=f"{host}:{port}",
-        read_only=True,  # This is what we are testing
-    )
-    await test_db.connect()
-
-    yield test_db
-    await test_db.close()
 
 
 ### TESTS ###

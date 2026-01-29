@@ -43,10 +43,22 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         """Ensure the pool is closed when exiting the context."""
         await self.close()
 
-    async def connect(self) -> asyncpg.Pool:
+    async def connect(
+        self,
+        min_size: int = 1,
+        max_size: int = 10,
+        command_timeout: float = 60.0,
+        timeout: float = 120.0,
+    ) -> asyncpg.Pool:
         """Connect to the database"""
         if not self._pool:
-            self._pool = await asyncpg.create_pool(self.dsn)
+            self._pool = await asyncpg.create_pool(
+                self.dsn,
+                min_size=min_size,
+                max_size=max_size,
+                command_timeout=command_timeout,  # Timeout for individual queries
+                timeout=timeout,  # Timeout for establishing connection
+            )
         return self._pool
 
     async def close(self) -> None:

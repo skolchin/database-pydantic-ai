@@ -62,6 +62,9 @@ postgres-down:
 	@echo "Stopping PostgreSQL (docker-compose)..."
 	-docker-compose -f examples/sql/postgresql/docker-compose.yaml down
 
+actions:
+	act push
+
 # Clean build artifacts
 clear: postgres-down
 	rm -rf build dist *.egg-info

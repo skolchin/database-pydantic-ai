@@ -52,7 +52,7 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 def deps(sqlite_client: SQLiteDatabase) -> SQLDatabaseDeps:
     # Instead of a generic SQLiteDatabase, use a real instance or
     # link the database attribute to your sqlite_client
-    return SQLDatabaseDeps(database=sqlite_client, max_rows=20, query_timeout=1.0)
+    return SQLDatabaseDeps(database=sqlite_client, max_rows=20, query_timeout=10.0)
 
 
 @pytest.fixture

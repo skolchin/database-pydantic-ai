@@ -22,8 +22,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install mkdocs-material mkdocstrings[python] mkdocs-autorefs
+          pip install mkdocs-material mkdocstrings[python] mkdocs-autorefs mkdocs-material[imaging]
           pip install -e ".[console,docker]"
 
-      - name: Build and deploy
+      - name: Build Site (Local & CI)
+        run: mkdocs build
+
+      - name: Deploy to GitHub Pages (CI Only)
+        # This prevents the Git push failure when running in act
+        if: github.actor != 'nektos/act'
         run: mkdocs gh-deploy --force
