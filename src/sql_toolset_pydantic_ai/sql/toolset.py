@@ -33,7 +33,16 @@ You have access to SQLite database tools for database operations and querying:
 
 @dataclass
 class SQLDatabaseDeps:
-    """Protocol for dependencies that provide a database backend"""
+    """
+    Dependencies for the SQL database toolset.
+
+    Attributes:
+        database: Database backend instance.
+        read_only: Enforce read-only mode (blocks INSERT, UPDATE, DELETE etc.)
+        max_rows: Maximum rows to return from queries.
+        query_timeout: Query timeout in seconds.
+        id: Optional dependency ID.
+    """
 
     database: SQLDatabaseProtocol
     read_only: bool = True
@@ -47,28 +56,11 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLData
     Create a database toolset for AI Agents.
 
     Args:
-        database: Database backend instance. If none, uses deps.database
-        read_only: Enforce read-only mode (blocks INSERT, UPDATE, DELETE etc.)
-        max_rows: Maximum rows to return from queries.
-        query_timeout: Query timeout in seconds.
         id: Optional toolset ID.
 
     Returns:
         FunctionalToolset with database tools
-
-    Examples:
-        from pydantic_ai_database import create_database_toolset, SQLiteDatabase
-        from pydantic_ai_database.toolsets import DatabaseDeps
-
-        db = SQLiteDatabase("./database.db")
-        deps = DatabaseDeps(db)
-        toolset = create_database_toolset(db)
-
-        agent = Agent(
-            "openai:gpt-5.1",
-            toolsets=[toolset],
-            deps=deps
-        )
+    ...
     """
     toolset = FunctionToolset[SQLDatabaseDeps](id=id)
 

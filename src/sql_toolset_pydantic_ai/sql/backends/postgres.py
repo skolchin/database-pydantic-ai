@@ -79,6 +79,7 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
     async def get_tables(self) -> list[str]:
         """Get list of tables in the public schema."""
+        pool = await self.connect()
         query = """
             SELECT table_name
             FROM information_schema.tables
@@ -86,13 +87,14 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             AND table_type = 'BASE TABLE'
             ORDER BY table_name;
         """
-        result = await self._pool.fetch(query)
+        result = await pool.fetch(query)
         table_list = [r["table_name"] for r in result]
 
         return table_list
 
     async def get_foreign_keys(self, table_name: str) -> list[ForeignKeyInfo]:
         """Get information about foreign keys in given table"""
+        pool = await self.connect()
         # Use $1 instead of f-string
         query = """
         SELECT DISTINCT
@@ -112,7 +114,7 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         """
 
         # Pass table_name as an argument to fetch
-        records = await self._pool.fetch(query, table_name)
+        records = await pool.fetch(query, table_name)
 
         return [
             ForeignKeyInfo(
@@ -194,12 +196,13 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
     async def explain(self, query: str) -> str:
         """Get query execution plan."""
+        pool = await self.connect()
         query = f"EXPLAIN {query}"
 
         explanation = ""
 
         try:
-            result = await self._pool.fetch(query)
+            result = await pool.fetch(query)
 
             for r in result:
                 explanation += f"{r['QUERY PLAN']}"
