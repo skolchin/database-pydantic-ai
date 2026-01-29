@@ -38,7 +38,7 @@ typecheck-mypy:
 	uv run mypy src
 
 # Run all checks
-all: format lint typecheck test
+all: format lint typecheck typecheck-mypy test
 
 # Run examples
 run-example-sqlite:
@@ -63,7 +63,7 @@ postgres-down:
 	-docker-compose -f examples/sql/postgresql/docker-compose.yaml down
 
 # Clean build artifacts
-clean: postgres-down
+clear: postgres-down
 	rm -rf build dist *.egg-info
 	rm -rf .coverage htmlcov .pytest_cache .ruff_cache .mypy_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +
