@@ -1,5 +1,7 @@
 # sql-toolset-pydantic-ai
 
+![logo](docs/assets/logo.png)
+
 [![PyPI](https://img.shields.io/pypi/v/sql-toolset-pydantic-ai.svg)](https://pypi.org/project/sql-toolset-pydantic-ai/)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sql-toolset-pydantic-ai.svg)](https://pypi.org/project/sql-toolset-pydantic-ai/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -73,7 +75,7 @@ async def main():
         "What are the top 5 most expensive products in our database?",
         deps=deps
     )
-    print(result.data)
+    print(result.output)
 
 if __name__ == "__main__":
     asyncio.run(main())

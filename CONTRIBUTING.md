@@ -1,6 +1,6 @@
 # Contributing to sql-toolset-pydantic-ai
 
-Thanks for your interest in contributing to the SQL Toolset for Pydantic AI!
+Thanks for your interest in contributing!
 
 ## Development Setup
 
@@ -38,7 +38,7 @@ All PRs must meet these requirements:
 | `make format` | Format code using Ruff |
 | `make typecheck` | Run Pyright |
 | `make typecheck-mypy` | Run MyPy |
-| `make all` | Run format, lint, typecheck, and test |
+| `make all` | Run all checks (format, lint, typecheck, test) |
 | `make run-example-sqlite` | Run the SQLite example |
 | `make run-example-postgres` | Run the PostgreSQL example |
 
@@ -57,17 +57,16 @@ uv run pytest tests/test_sqlite.py -v -s
 
 ## Code Style
 
-- We use [Ruff](https://github.com/astral-sh/ruff) for linting and formatting.
-- Run `make format` to auto-format and `make lint` to check.
-- We follow strict typing; ensure your code passes both Pyright and MyPy.
+- We use [Ruff](https://github.com/astral-sh/ruff) for linting and formatting
+- Run `make format` to auto-format and `make lint` to check
+- Follow existing patterns in the codebase and ensure strict typing
 
 ## Pull Request Process
 
-1. Fork the repo and create your branch from `main`.
-2. Make your changes.
-3. Add tests for any new functionality.
-4. Ensure `make all` passes (format, lint, typecheck, and 100% coverage).
-5. Submit a PR with a clear description of the changes.
+1. Fork the repo and create your branch from `main`
+2. Make your changes and add tests for new functionality
+3. Ensure `make all` passes (100% coverage is required)
+4. Submit a PR with a clear description of the changes
 
 ## Questions?
 

@@ -29,23 +29,30 @@ deps = SQLDatabaseDeps(
 When you call `create_database_toolset()`, the following tools are made available to the agent:
 
 ### `list_tables`
+
 Returns a list of all table names in the database.
 
 ### `get_schema`
+
 Returns a `SchemaInfo` object containing an overview of all tables, including column counts and approximate row counts.
 
 ### `describe_table`
+
 Takes a `table_name` and returns detailed `TableInfo`, including:
+
 - Column names and types
 - Nullability and default values
 - Primary keys
 - Foreign key relationships
 
 ### `explain_query`
+
 Takes a `sql_query` and returns the database's execution plan. Useful for the agent to verify it understands the query performance before execution.
 
 ### `query`
+
 Executes a SQL query and returns a `QueryResult`. It respects the `max_rows` and `query_timeout` defined in `SQLDatabaseDeps`.
 
 ### `sample_query`
+
 A specialized version of `query` intended for data exploration, typically limited to 5 rows by default.
