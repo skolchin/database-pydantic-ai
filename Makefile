@@ -35,10 +35,10 @@ typecheck:
 	uv run pyright
 
 typecheck-mypy:
-	uv run mypy src
+	uv run mypy src tests
 
 # Run all checks
-all: format lint typecheck test
+all: format lint typecheck typecheck-mypy typecheck test
 
 # Run examples
 run-example-sqlite:
@@ -62,8 +62,11 @@ postgres-down:
 	@echo "Stopping PostgreSQL (docker-compose)..."
 	-docker-compose -f examples/sql/postgresql/docker-compose.yaml down
 
+actions:
+	act push
+
 # Clean build artifacts
-clean: postgres-down
+clear: postgres-down
 	rm -rf build dist *.egg-info
 	rm -rf .coverage htmlcov .pytest_cache .ruff_cache .mypy_cache
 	find . -type d -name __pycache__ -exec rm -rf {} +

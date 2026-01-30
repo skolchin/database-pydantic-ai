@@ -47,6 +47,10 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         await self.connect()
         start_time = time.perf_counter()
 
+        # Check if connection exists to satisfy MyPy and prevent runtime crashes
+        if self._connection is None:
+            raise RuntimeError("Database connection is not initialized. Call connect() first.")
+
         # While using `aiosqlite`, executed call has to be awaited
         async with self._connection.execute(query, params or ()) as cursor:
             rows = await cursor.fetchall()

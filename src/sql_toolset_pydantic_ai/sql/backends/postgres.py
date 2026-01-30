@@ -1,5 +1,6 @@
 import asyncio
 import time
+from types import TracebackType
 from typing import Any
 
 import asyncpg
@@ -33,14 +34,39 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         await self.connect()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Ensure the pool is closed when exiting the context."""
         await self.close()
 
-    async def connect(self) -> asyncpg.Pool:
-        """Connect to the database"""
+    async def connect(
+        self,
+        min_size: int = 1,
+        max_size: int = 10,
+        command_timeout: float = 60.0,
+        timeout: float = 120.0,
+    ) -> asyncpg.Pool:
+        """
+        Connect to the database.
+
+        Args:
+            min_size: Minimum size of the connection pool.
+            max_size: Maximum size of the connection pool.
+            command_timeout: Timeout for individual queries in seconds.
+            timeout: Timeout for establishing the connection in seconds.
+        """
         if not self._pool:
-            self._pool = await asyncpg.create_pool(self.dsn)
+            self._pool = await asyncpg.create_pool(
+                self.dsn,
+                min_size=min_size,
+                max_size=max_size,
+                command_timeout=command_timeout,  # Timeout for individual queries
+                timeout=timeout,  # Timeout for establishing connection
+            )
         return self._pool
 
     async def close(self) -> None:

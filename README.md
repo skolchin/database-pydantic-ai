@@ -148,6 +148,7 @@ make format
 
 # Type checking
 make typecheck
+make typecheck-mypy
 ```
 
 ## License

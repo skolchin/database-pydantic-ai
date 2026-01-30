@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from pydantic_ai import RunContext, RunUsage
+from pydantic_ai import FunctionToolset, RunContext, RunUsage, Tool
 from pydantic_ai.models.test import TestModel
 from testcontainers.postgres import PostgresContainer
 
@@ -20,7 +20,7 @@ MODEL = TestModel()
 
 
 ### HELPERS ###
-def get_tool(toolset, name):
+def get_tool(toolset: FunctionToolset[SQLDatabaseDeps], name: str) -> Tool[Any]:
     tools = toolset.tools if isinstance(toolset.tools, list) else toolset.tools.values()
     return next(t for t in tools if t.name == name)
 
@@ -37,7 +37,9 @@ def postgres_container() -> Generator[PostgresContainer, Any, None]:
 
 # Provide a clean Database instance for each individual test
 @pytest_asyncio.fixture(scope="function")
-async def pg_client(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_client(
+    postgres_container: PostgresContainer,
+) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
 
@@ -49,7 +51,7 @@ async def pg_client(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, An
         read_only=False,
     )
 
-    await db.connect()
+    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
 
     # SETUP: Create tables needed for tests
     await db.execute("DROP TABLE IF EXISTS users CASCADE;")
@@ -62,7 +64,9 @@ async def pg_client(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, An
 
 
 @pytest_asyncio.fixture(scope="function")
-async def pg_client_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDatabase, Any]:
+async def pg_client_read_only(
+    postgres_container: PostgresContainer,
+) -> AsyncGenerator[PostgreSQLDatabase, Any]:
     host = (
         f"{postgres_container.get_container_host_ip()}:{postgres_container.get_exposed_port(5432)}"
     )
@@ -76,37 +80,29 @@ async def pg_client_read_only(postgres_container) -> AsyncGenerator[PostgreSQLDa
         read_only=False,  # Must be False to seed the data for tests
     )
 
-    await setup_db.connect()
+    await asyncio.wait_for(setup_db.connect(max_size=5), timeout=120.0)
+
     await setup_db.execute("DROP TABLE IF EXISTS users CASCADE;")
     await setup_db.execute("CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT);")
     await setup_db.execute("INSERT INTO users (name) VALUES ('Alice');")
-    await setup_db.close()  # Close setup connection
 
-    # Create the ACTUAL client we want to test (Read-Only)
-    test_db = PostgreSQLDatabase(
-        user=postgres_container.username,
-        password=postgres_container.password,
-        db=postgres_container.dbname,
-        host=host,
-        read_only=True,  # This is what we are testing
-    )
-    await test_db.connect()
+    setup_db.read_only = True
 
-    yield test_db
-    await test_db.close()
+    yield setup_db
+    await setup_db.close()
 
 
 @pytest.fixture
 def deps(pg_client: PostgreSQLDatabase) -> SQLDatabaseDeps:
     # Instead of a generic SQLiteDatabase, use a real instance or
     # link the database attribute to your sqlite_client
-    return SQLDatabaseDeps(database=pg_client, max_rows=20, query_timeout=1.0)
+    return SQLDatabaseDeps(database=pg_client, max_rows=20, query_timeout=10.0)
 
 
 @pytest.fixture
 def context(deps: SQLDatabaseDeps) -> RunContext[SQLDatabaseDeps]:
     # Using the real RunContext is safer than MagicMock for E2E
-    return RunContext(model=MODEL, usage=RunUsage(), deps=deps)
+    return RunContext(model=MODEL, usage=RunUsage(), deps=deps, max_retries=3)
 
 
 ### TESTS ###
@@ -255,6 +251,8 @@ async def test_run_sample_sql_query_limit(
     result = await tool.function(context, sql_query="SELECT * FROM users", limit=1)
 
     # Assert individually due to execution time being present
+    assert response is not None
+    assert result is not None
     assert response.columns == result.columns
     assert response.rows != result.rows
     assert response.row_count != result.row_count

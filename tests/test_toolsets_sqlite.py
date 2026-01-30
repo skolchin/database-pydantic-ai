@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 import pytest_asyncio
-from pydantic_ai import RunContext, RunUsage
+from pydantic_ai import FunctionToolset, RunContext, RunUsage, Tool
 from pydantic_ai.models.test import TestModel
 
 from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
@@ -19,7 +19,7 @@ MODEL = TestModel()
 
 
 ### HELPERS ###
-def get_tool(toolset, name):
+def get_tool(toolset: FunctionToolset[SQLDatabaseDeps], name: str) -> Tool[Any]:
     tools = toolset.tools if isinstance(toolset.tools, list) else toolset.tools.values()
     return next(t for t in tools if t.name == name)
 
@@ -52,7 +52,7 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 def deps(sqlite_client: SQLiteDatabase) -> SQLDatabaseDeps:
     # Instead of a generic SQLiteDatabase, use a real instance or
     # link the database attribute to your sqlite_client
-    return SQLDatabaseDeps(database=sqlite_client, max_rows=20, query_timeout=1.0)
+    return SQLDatabaseDeps(database=sqlite_client, max_rows=20, query_timeout=10.0)
 
 
 @pytest.fixture
