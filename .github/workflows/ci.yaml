@@ -10,7 +10,7 @@ on:
 
 env:
   COLUMNS: 150
-  TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+  TESTCONTAINERS_HOST_OVERRIDE: localhost
   TESTCONTAINERS_RYUK_DISABLED: true
 
 jobs:
