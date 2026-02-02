@@ -22,6 +22,20 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         self.db_path = db_path
         self._connection: aiosqlite.Connection | None = None
 
+    async def __aenter__(self) -> "SQLiteDatabase":
+        """Support for `async with` context manager"""
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: BaseException | None,
+    ) -> None:
+        """Ensure the connection is closed when exiting the context."""
+        await self.close()
+
     async def connect(self) -> None:
         """Connect to the database"""
         if not self._connection:
@@ -45,6 +59,9 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             raise PermissionError("Database is in read-only mode")
 
         await self.connect()
+        if self._connection is None:
+            raise RuntimeError("Failed to establish database connection")
+
         start_time = time.perf_counter()
 
         # Check if connection exists to satisfy MyPy and prevent runtime crashes

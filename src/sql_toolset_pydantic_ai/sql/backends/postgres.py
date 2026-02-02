@@ -81,6 +81,9 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             raise PermissionError("Database is in read-only mode")
 
         pool = await self.connect()
+        if pool is None:
+            raise RuntimeError("Failed to establish database connection")
+
         start_time = time.perf_counter()
 
         # Make the query w/ params

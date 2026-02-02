@@ -8,8 +8,8 @@ from pydantic_ai import FunctionToolset, RunContext
 from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
 from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
 
-SQL_SYSTEM_PROMPT = """
-## SQL Database Toolset
+SQLITE_SYSTEM_PROMPT = """
+## SQLite Database Toolset
 
 ### IMPORTANT
 * Database may be running in READ-ONLY mode

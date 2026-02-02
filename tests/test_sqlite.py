@@ -12,19 +12,15 @@ from sql_toolset_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo
 @pytest_asyncio.fixture
 async def sqlite_client() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
-    client = SQLiteDatabase(":memory:", read_only=False)
-    await client.connect()
-    yield client
-    await client.close()
+    async with SQLiteDatabase(":memory:", read_only=False) as client:
+        yield client
 
 
 @pytest_asyncio.fixture
 async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
     # Using `:memory:` to use fast and RAM
-    client = SQLiteDatabase(":memory:")
-    await client.connect()
-    yield client
-    await client.close()
+    async with SQLiteDatabase(":memory:") as client:
+        yield client
 
 
 ### TESTS ###

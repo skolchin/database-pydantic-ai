@@ -34,6 +34,7 @@ To run the examples and use the library with OpenAI models, you need an OpenAI A
 
 1. Create a `.env` file in your project root (you can use `.env.example` as a template).
 2. Add your OpenAI API key:
+
    ```env
    OPENAI_API_KEY=your_api_key_here
    ```
@@ -49,7 +50,7 @@ Connect a PydanticAI agent to a SQLite database in just a few lines of code.
 import asyncio
 from pydantic_ai import Agent
 from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps, SQL_SYSTEM_PROMPT
+from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps, SQLITE_SYSTEM_PROMPT
 from dotenv import load_dotenv
 
 # Load environment variables from .env
@@ -70,7 +71,7 @@ async def main():
         "openai:gpt-4o",
         deps_type=SQLDatabaseDeps,
         toolsets=[toolset],
-        system_prompt=SQL_SYSTEM_PROMPT
+        system_prompt=SQLITE_SYSTEM_PROMPT
     )
 
     # 5. Run the agent

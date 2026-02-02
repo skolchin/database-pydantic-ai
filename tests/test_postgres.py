@@ -34,12 +34,10 @@ async def pg_db(postgres_container: PostgresContainer) -> AsyncGenerator[Postgre
         read_only=False,
     )
 
-    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
-    await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
-    yield db
-
-    # CLEANUP: Close connection
-    await db.close()
+    async with db:
+        await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
+        await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
+        yield db
 
 
 @pytest_asyncio.fixture
@@ -58,13 +56,11 @@ async def pg_db_read_only(
     )
 
     # Create a "Setup" client that IS allowed to write
-    await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
-
-    await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
-
-    db.read_only = True
-    yield db
-    await db.close()
+    async with db:
+        await asyncio.wait_for(db.connect(max_size=5), timeout=120.0)
+        await db.execute("DROP TABLE IF EXISTS users, products, orders CASCADE;")
+        db.read_only = True
+        yield db
 
 
 ### TESTS ###

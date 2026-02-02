@@ -6,7 +6,7 @@ from pydantic_ai import Agent
 
 from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
 from sql_toolset_pydantic_ai.sql.toolset import (
-    SQL_SYSTEM_PROMPT,
+    SQLITE_SYSTEM_PROMPT,
     SQLDatabaseDeps,
     create_database_toolset,
 )
@@ -41,7 +41,7 @@ async def run_sql_agent_example():
         "openai:gpt-4o",  # or your preferred model
         deps_type=SQLDatabaseDeps,
         toolsets=[toolset],
-        system_prompt=SQL_SYSTEM_PROMPT,
+        system_prompt=SQLITE_SYSTEM_PROMPT,
     )
 
     try:
@@ -68,4 +68,5 @@ async def run_sql_agent_example():
 
 
 if __name__ == "__main__":
+    # Run agent with manual cleanup
     asyncio.run(run_sql_agent_example())
