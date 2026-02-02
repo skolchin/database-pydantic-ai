@@ -118,7 +118,6 @@ The `create_database_toolset()` provides the following tools to the agent:
 - `describe_table`: Get detailed information about a specific table's columns, types, and constraints.
 - `explain_query`: Get the execution plan for a SQL query without running it.
 - `query`: Execute a SQL query and return results (respecting `max_rows` and `query_timeout`).
-- `sample_query`: Quickly explore data with a limited result set.
 
 ## Configuration
 

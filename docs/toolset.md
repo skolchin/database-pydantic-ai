@@ -52,7 +52,3 @@ Takes a `sql_query` and returns the database's execution plan. Useful for the ag
 ### `query`
 
 Executes a SQL query and returns a `QueryResult`. It respects the `max_rows` and `query_timeout` defined in `SQLDatabaseDeps`.
-
-### `sample_query`
-
-A specialized version of `query` intended for data exploration, typically limited to 5 rows by default.

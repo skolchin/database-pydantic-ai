@@ -21,7 +21,6 @@ You have access to SQLite database tools for database operations and querying:
 * `describe_table` - describe table's content
 * `explain_query` - explains dependencies which given SQL query needs to run
 * `query` - execute a SQL query on a database to retrieve data
-* `sample_query` - execute a sample SQL query to retrieve data
 
 ### Best Practices
 * Always try to perform sample data query before performing full query process
@@ -146,46 +145,6 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLData
             )
 
         limit = max_rows or ctx.deps.max_rows
-
-        if len(result.rows) > limit:
-            result = QueryResult(
-                columns=result.columns,
-                rows=result.rows[:limit],
-                row_count=min(result.row_count, limit),
-                execution_time_ms=result.execution_time_ms,
-            )
-
-        return result
-
-    @toolset.tool
-    async def sample_query(
-        ctx: RunContext[SQLDatabaseDeps], sql_query: str, limit: int = 5
-    ) -> QueryResult:
-        """
-        Perform a sample query to explore the data stored in database.
-
-        Args:
-            sql_query: SQL query to be executed.
-            limit: Maximum number of rows to be returned (default: 5)
-
-        Returns:
-            QueryResults object with queried data.
-
-        Example:
-            query("SELECT id, name FROM users WHERE is_banned = true;")
-        """
-        try:
-            result = await asyncio.wait_for(
-                ctx.deps.database.execute(sql_query), timeout=ctx.deps.query_timeout
-            )
-
-        except asyncio.TimeoutError:
-            return QueryResult(
-                columns=[],
-                rows=[],
-                row_count=0,
-                execution_time_ms=0,  # indicate max wait with `0`
-            )
 
         if len(result.rows) > limit:
             result = QueryResult(

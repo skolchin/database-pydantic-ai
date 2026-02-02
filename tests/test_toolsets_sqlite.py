@@ -69,7 +69,7 @@ def test_toolset_creation() -> None:
     # If it is a dict, .values() gives the tools.
     tools_list = list(toolset.tools.values()) if isinstance(toolset.tools, dict) else toolset.tools
 
-    assert len(tools_list) == 6
+    assert len(tools_list) == 5
     tool_names = {t.name for t in tools_list}
     assert tool_names == {
         "list_tables",
@@ -77,7 +77,6 @@ def test_toolset_creation() -> None:
         "describe_table",
         "explain_query",
         "query",
-        "sample_query",
     }
 
 
@@ -189,72 +188,11 @@ async def test_run_sql_query_max_rows(
 
 
 @pytest.mark.asyncio
-async def test_run_sample_sql_query(
-    context: RunContext[SQLDatabaseDeps], sqlite_client: SQLiteDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
-
-    # Make the call manually
-    response = await sqlite_client.execute("SELECT * FROM users")
-
-    # Tool call manually
-    result = await tool.function(context, sql_query="SELECT * FROM users")
-
-    # Assert individually due to execution time being present
-    assert response.columns == result.columns
-    assert response.rows == result.rows
-    assert response.row_count == result.row_count
-
-
-@pytest.mark.asyncio
-async def test_run_sample_sql_query_limit(
-    context: RunContext[SQLDatabaseDeps], sqlite_client: SQLiteDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
-
-    # Make the calls manually
-    response = await sqlite_client.execute("SELECT * FROM users")
-    result = await tool.function(context, sql_query="SELECT * FROM users", limit=1)
-
-    # Assert individually due to execution time being present
-    assert response.columns == result.columns
-    assert response.rows != result.rows
-    assert response.row_count != result.row_count
-    assert len(result) == 1
-    assert len(result) != len(response)
-
-
-@pytest.mark.asyncio
 async def test_query_timeout(
     context: RunContext[SQLDatabaseDeps], sqlite_client: SQLiteDatabase
 ) -> None:
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
-
-    async def slow_execute(*args, **kwargs):
-        await asyncio.sleep(0.5)
-        return QueryResult([], [], 0, 0)
-
-    # Patch the actual execute method on the client instance
-    with patch.object(sqlite_client, "execute", side_effect=slow_execute):
-        context.deps.query_timeout = 0.01  # Set timeout much lower than sleep
-        result = await tool.function(context, sql_query="SELECT * FROM users;")
-
-    assert isinstance(result, QueryResult)
-    assert result.columns == []
-    assert result.rows == []
-    assert result.row_count == 0
-    assert result.execution_time_ms == 0
-
-
-@pytest.mark.asyncio
-async def test_sample_query_timeout(
-    context: RunContext[SQLDatabaseDeps], sqlite_client: SQLiteDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
 
     async def slow_execute(*args, **kwargs):
         await asyncio.sleep(0.5)
