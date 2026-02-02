@@ -1,9 +1,13 @@
-from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict
 
-@dataclass
-class QueryResult:
+
+class CustomTypes(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class QueryResult(CustomTypes):
     """Result of a database query."""
 
     columns: list[str]
@@ -15,19 +19,7 @@ class QueryResult:
         return len(self.rows)
 
 
-@dataclass
-class TableInfo:
-    """Information about a database table."""
-
-    name: str
-    columns: list["ColumnInfo"]
-    row_count: int | None = None
-    primary_key: list[str] | None = None
-    foreign_keys: list["ForeignKeyInfo"] | None = None
-
-
-@dataclass
-class ColumnInfo:
+class ColumnInfo(CustomTypes):
     """Information about a table column."""
 
     name: str
@@ -37,8 +29,7 @@ class ColumnInfo:
     is_primary_key: bool = False
 
 
-@dataclass
-class ForeignKeyInfo:
+class ForeignKeyInfo(CustomTypes):
     """Foreign key relationship."""
 
     column: str
@@ -46,9 +37,18 @@ class ForeignKeyInfo:
     references_column: str
 
 
-@dataclass
-class SchemaInfo:
+class TableInfo(CustomTypes):
+    """Information about a database table."""
+
+    name: str
+    columns: list[ColumnInfo]
+    row_count: int | None = None
+    primary_key: list[str] | None = None
+    foreign_keys: list[ForeignKeyInfo] | None = None
+
+
+class SchemaInfo(CustomTypes):
     """Database schema information."""
 
-    tables: list[TableInfo]
+    tables: list[TableInfo | str]
     views: list[str] | None = None

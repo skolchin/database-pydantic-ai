@@ -77,8 +77,7 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """Execute a SQL query with optional parameters."""
-        if self.read_only and self._is_write_query(query):
-            raise PermissionError("Database is in read-only mode")
+        safe_query = self.check_query_safety(query)
 
         pool = await self.connect()
         if pool is None:
@@ -91,9 +90,9 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             args = params if isinstance(params, (list, tuple)) else (params,)
 
             # Use `fetch` if you want rows back, or `execute` if you just want the status
-            records = await pool.fetch(query, *args)
+            records = await pool.fetch(safe_query, *args)
         else:
-            records = await pool.fetch(query)
+            records = await pool.fetch(safe_query)
 
         # Transform data to fit schema
         processed_rows = [tuple(row) for row in records]
@@ -154,7 +153,9 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             for r in records
         ]
 
-    async def get_table_info(self, table_name: str) -> TableInfo | None:
+    async def get_table_info(
+        self, table_name: str, return_md: bool = True
+    ) -> TableInfo | str | None:
         """Get detailed information about a specific table."""
         tables = await self.get_tables()
         if table_name not in tables:
@@ -205,7 +206,7 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         count_res = await self.execute(f"SELECT COUNT(*) FROM {table_name};")
         actual_row_count = count_res.rows[0][0] if count_res.rows else 0
 
-        return TableInfo(
+        table = TableInfo(
             name=table_name,
             columns=columns,
             row_count=actual_row_count,
@@ -213,12 +214,22 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             primary_key=primary_keys,
         )
 
-    async def get_schema(self) -> SchemaInfo:
+        if return_md:
+            table_md = self.render_table_as_markdown(table)
+            return table_md
+
+        return table
+
+    async def get_schema(self, return_md: bool = True) -> SchemaInfo | str:
         """Get database schema information."""
         table_names = await self.get_tables()
 
-        tasks = [self.get_table_info(table_name) for table_name in table_names]
+        tasks = [self.get_table_info(table_name, return_md=return_md) for table_name in table_names]
         tables = await asyncio.gather(*tasks)
+
+        if return_md:
+            str_tables = [str(t) for t in tables if t]
+            return "\n".join(str_tables)
 
         # Filter out empty responses in the output
         return SchemaInfo(tables=[t for t in tables if t])

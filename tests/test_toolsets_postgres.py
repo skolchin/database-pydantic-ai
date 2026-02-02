@@ -141,15 +141,15 @@ async def test_list_tables(
 
 
 @pytest.mark.asyncio
-async def test_get_schema(
+async def test_get_schema_object(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
     toolset = create_database_toolset()
     tool = get_tool(toolset, "get_schema")
 
     # Make the calls manually
-    response = await pg_client.get_schema()
-    result = await tool.function(context)
+    response = await pg_client.get_schema(return_md=False)
+    result = await tool.function(context, return_md=False)
 
     # Assert
     assert response == result
@@ -230,7 +230,7 @@ async def test_query_timeout(
 
     async def slow_execute(*args, **kwargs):
         await asyncio.sleep(0.5)
-        return QueryResult([], [], 0, 0)
+        return QueryResult(columns=[], rows=[], row_count=0, execution_time_ms=0)
 
     # Patch the actual execute method on the client instance
     with patch.object(pg_client, "execute", side_effect=slow_execute):

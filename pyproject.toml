@@ -44,6 +44,7 @@ dev = [
     "pytest-timeout>=2.4.0",
     "pyright>=1.1.408",
     "mypy>=1.19.1",
+    "icecream>=2.1.10",
 ]
 lint = [
     "ruff>=0.8.0",

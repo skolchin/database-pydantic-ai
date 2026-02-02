@@ -25,6 +25,37 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 
 ### TESTS ###
 ## READ-ONLY ##
+@pytest.mark.asyncio
+async def test_read_client_without_query(sqlite_client_read_only: SQLiteDatabase) -> None:
+    # No Query
+    with pytest.raises(ValueError) as exc_info:
+        await sqlite_client_read_only.execute("")
+    assert str(exc_info.value) == "Query is empty or only contains comments."
+
+
+@pytest.mark.asyncio
+async def test_read_client_multiple_queries(sqlite_client_read_only: SQLiteDatabase) -> None:
+    # Multiple queries
+    with pytest.raises(PermissionError) as exc_info:
+        await sqlite_client_read_only.execute(";;;;;INSERT;;;;;")
+    assert str(exc_info.value) == "Multiple statements are not allowed for security reasons."
+
+
+@pytest.mark.asyncio
+async def test_read_client_allows_select(sqlite_client_read_only: SQLiteDatabase) -> None:
+    await sqlite_client_read_only.execute("SELECT 1")
+
+
+@pytest.mark.asyncio
+async def test_read_client_cte_select_allowed(sqlite_client_read_only: SQLiteDatabase) -> None:
+    await sqlite_client_read_only.execute(
+        """
+        WITH x AS (
+            SELECT 1 AS value
+        )
+        SELECT value FROM x
+        """
+    )
 
 
 @pytest.mark.asyncio
@@ -34,7 +65,7 @@ async def test_read_client_with_write_query_basic(sqlite_client_read_only: SQLit
         await sqlite_client_read_only.execute(
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -47,7 +78,7 @@ async def test_read_client_with_write_query_start_comment(
             "/* comments here */ INSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -60,7 +91,7 @@ async def test_read_client_with_write_query_start_hyphen(
             "-- comment line\nINSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -73,7 +104,7 @@ async def test_read_client_with_write_query_mixed_case(
             "   -- comment\nInSeRt INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -86,7 +117,7 @@ async def test_read_client_with_write_query_start_with(
             "WITH x AS (SELECT * FROM users) "
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation detected inside CTE in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -99,7 +130,7 @@ async def test_read_client_with_write_query_inline_comment(
             "INSERT INTO users (id, /* comment */ name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -117,7 +148,7 @@ async def test_read_client_with_write_query_multiline_cte(
             VALUES (1, 'Alice', 'alice@example.com');
             """
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation detected inside CTE in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -129,7 +160,7 @@ async def test_read_client_with_write_query_whitespace_variants(
         await sqlite_client_read_only.execute(
             "  \n\tINSERT  INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 ## READ & WRITE ##
@@ -190,7 +221,7 @@ async def test_relationship_integrity_empty_table(sqlite_client: SQLiteDatabase)
 
 
 @pytest.mark.asyncio
-async def test_get_table_info(sqlite_client: SQLiteDatabase) -> None:
+async def test_get_table_info_no_data(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -206,12 +237,36 @@ async def test_get_table_info(sqlite_client: SQLiteDatabase) -> None:
     assert res_users is not None
     assert res_orders is not None
 
+
+@pytest.mark.asyncio
+async def test_get_table_info_object(sqlite_client: SQLiteDatabase) -> None:
+    # Act
+    await sqlite_client.execute(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
+    )
+    await sqlite_client.execute(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
+        "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
+    )
+    res_users = await sqlite_client.get_table_info("users", return_md=False)
+    res_orders = await sqlite_client.get_table_info("orders", return_md=False)
+
+    # Assert
+    assert res_users is not None
+    assert res_orders is not None
+
     assert res_users == TableInfo(
         name="users",
         columns=[
-            ColumnInfo("id", "INTEGER", True, None, True),
-            ColumnInfo("name", "TEXT", True, None, False),
-            ColumnInfo("city", "TEXT", False, None, False),
+            ColumnInfo(
+                name="id", data_type="INTEGER", nullable=True, default=None, is_primary_key=True
+            ),
+            ColumnInfo(
+                name="name", data_type="TEXT", nullable=True, default=None, is_primary_key=False
+            ),
+            ColumnInfo(
+                name="city", data_type="TEXT", nullable=False, default=None, is_primary_key=False
+            ),
         ],
         row_count=0,
         primary_key=["id"],
@@ -221,13 +276,25 @@ async def test_get_table_info(sqlite_client: SQLiteDatabase) -> None:
     assert res_orders == TableInfo(
         name="orders",
         columns=[
-            ColumnInfo("id", "INTEGER", True, None, True),
-            ColumnInfo("user_id", "INTEGER", True, None, False),
-            ColumnInfo("product", "TEXT", True, None, False),
+            ColumnInfo(
+                name="id", data_type="INTEGER", nullable=True, default=None, is_primary_key=True
+            ),
+            ColumnInfo(
+                name="user_id",
+                data_type="INTEGER",
+                nullable=True,
+                default=None,
+                is_primary_key=False,
+            ),
+            ColumnInfo(
+                name="product", data_type="TEXT", nullable=True, default=None, is_primary_key=False
+            ),
         ],
         row_count=0,
         primary_key=["id"],
-        foreign_keys=[ForeignKeyInfo("user_id", "users", "id")],
+        foreign_keys=[
+            ForeignKeyInfo(column="user_id", references_table="users", references_column="id")
+        ],
     )
 
 
@@ -274,7 +341,7 @@ async def test_get_tables_no_tables(sqlite_client: SQLiteDatabase) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(sqlite_client: SQLiteDatabase) -> None:
+async def test_get_schema_string(sqlite_client: SQLiteDatabase) -> None:
     # Act
     await sqlite_client.execute(
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -291,54 +358,137 @@ async def test_get_schema(sqlite_client: SQLiteDatabase) -> None:
     res = await sqlite_client.get_schema()
 
     # Assert
+    assert isinstance(res, str)
+
+
+@pytest.mark.asyncio
+async def test_get_schema_object(sqlite_client: SQLiteDatabase) -> None:
+    # Act
+    await sqlite_client.execute(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
+    )
+    await sqlite_client.execute(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
+        "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
+    )
+    await sqlite_client.execute(
+        "CREATE TABLE products (main_key INTEGER PRIMARY KEY, name BLOB NOT NULL, price REAL, "
+        "FOREIGN KEY (name) REFERENCES orders (product));"
+    )
+    await sqlite_client.execute("INSERT INTO users ('name', 'city') VALUES ('test', 'TestCity')")
+    res = await sqlite_client.get_schema(return_md=False)
+
+    # Assert
     assert res is not None
     assert res == SchemaInfo(
         tables=[
             TableInfo(
-                "users",
-                [
-                    ColumnInfo("id", "INTEGER", True, None, True),
-                    ColumnInfo("name", "TEXT", True, None, False),
-                    ColumnInfo("city", "TEXT", False, None, False),
+                name="users",
+                columns=[
+                    ColumnInfo(
+                        name="id",
+                        data_type="INTEGER",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=True,
+                    ),
+                    ColumnInfo(
+                        name="name",
+                        data_type="TEXT",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=False,
+                    ),
+                    ColumnInfo(
+                        name="city",
+                        data_type="TEXT",
+                        nullable=False,
+                        default=None,
+                        is_primary_key=False,
+                    ),
                 ],
-                1,
-                ["id"],
-                [],
+                row_count=1,
+                primary_key=["id"],
+                foreign_keys=[],
             ),
             TableInfo(
-                "orders",
-                [
-                    ColumnInfo("id", "INTEGER", True, None, True),
-                    ColumnInfo("user_id", "INTEGER", True, None, False),
-                    ColumnInfo("product", "TEXT", True, None, False),
+                name="orders",
+                columns=[
+                    ColumnInfo(
+                        name="id",
+                        data_type="INTEGER",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=True,
+                    ),
+                    ColumnInfo(
+                        name="user_id",
+                        data_type="INTEGER",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=False,
+                    ),
+                    ColumnInfo(
+                        name="product",
+                        data_type="TEXT",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=False,
+                    ),
                 ],
-                0,
-                ["id"],
-                [ForeignKeyInfo("user_id", "users", "id")],
+                row_count=0,
+                primary_key=["id"],
+                foreign_keys=[
+                    ForeignKeyInfo(
+                        column="user_id", references_table="users", references_column="id"
+                    )
+                ],
             ),
             TableInfo(
-                "products",
-                [
-                    ColumnInfo("main_key", "INTEGER", True, None, True),
-                    ColumnInfo("name", "BLOB", False, None, False),
-                    ColumnInfo("price", "REAL", True, None, False),
+                name="products",
+                columns=[
+                    ColumnInfo(
+                        name="main_key",
+                        data_type="INTEGER",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=True,
+                    ),
+                    ColumnInfo(
+                        name="name",
+                        data_type="BLOB",
+                        nullable=False,
+                        default=None,
+                        is_primary_key=False,
+                    ),
+                    ColumnInfo(
+                        name="price",
+                        data_type="REAL",
+                        nullable=True,
+                        default=None,
+                        is_primary_key=False,
+                    ),
                 ],
-                0,
-                ["main_key"],
-                [ForeignKeyInfo("name", "orders", "product")],
+                row_count=0,
+                primary_key=["main_key"],
+                foreign_keys=[
+                    ForeignKeyInfo(
+                        column="name", references_table="orders", references_column="product"
+                    )
+                ],
             ),
         ]
     )
 
 
 @pytest.mark.asyncio
-async def test_get_schema_no_tables(sqlite_client: SQLiteDatabase) -> None:
+async def test_get_schema_no_tables_object(sqlite_client: SQLiteDatabase) -> None:
     # Act
-    res = await sqlite_client.get_schema()
+    res = await sqlite_client.get_schema(return_md=False)
 
     # Assert
     assert res is not None
-    assert res == SchemaInfo([])
+    assert res == SchemaInfo(tables=[])
 
 
 @pytest.mark.asyncio

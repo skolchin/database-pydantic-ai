@@ -1,8 +1,9 @@
 """PydanticAI toolset for AI agents used to inference with database on given permission level"""
 
 import asyncio
-from dataclasses import dataclass
+from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict, SkipValidation
 from pydantic_ai import FunctionToolset, RunContext
 
 from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
@@ -30,8 +31,7 @@ You have access to SQLite database tools for database operations and querying:
 """
 
 
-@dataclass
-class SQLDatabaseDeps:
+class SQLDatabaseDeps(BaseModel):
     """
     Dependencies for the SQL database toolset.
 
@@ -43,7 +43,9 @@ class SQLDatabaseDeps:
         id: Optional dependency ID.
     """
 
-    database: SQLDatabaseProtocol
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    database: Annotated[SQLDatabaseProtocol, SkipValidation]
     read_only: bool = True
     max_rows: int = 100
     query_timeout: float = 30.0
@@ -74,17 +76,19 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLData
         return await ctx.deps.database.get_tables()
 
     @toolset.tool
-    async def get_schema(ctx: RunContext[SQLDatabaseDeps]) -> SchemaInfo:
+    async def get_schema(ctx: RunContext[SQLDatabaseDeps], return_md: bool) -> SchemaInfo | str:
         """
         Get an overview of the database schema.
 
         Returns:
             List of all tables with their column counts and row counts.
         """
-        return await ctx.deps.database.get_schema()
+        return await ctx.deps.database.get_schema(return_md=return_md)
 
     @toolset.tool
-    async def describe_table(ctx: RunContext[SQLDatabaseDeps], table_name: str) -> TableInfo | None:
+    async def describe_table(
+        ctx: RunContext[SQLDatabaseDeps], table_name: str
+    ) -> TableInfo | str | None:
         """
         Get detailed information about a specific table.
 

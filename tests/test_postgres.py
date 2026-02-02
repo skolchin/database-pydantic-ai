@@ -7,7 +7,7 @@ import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 
 from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
-from sql_toolset_pydantic_ai.types import ForeignKeyInfo, SchemaInfo
+from sql_toolset_pydantic_ai.types import ForeignKeyInfo, SchemaInfo, TableInfo
 
 
 ### FIXTURES ###
@@ -66,13 +66,46 @@ async def pg_db_read_only(
 ### TESTS ###
 ## READ-ONLY ##
 @pytest.mark.asyncio
+async def test_read_client_without_query(pg_db_read_only: PostgreSQLDatabase) -> None:
+    # No Query
+    with pytest.raises(ValueError) as exc_info:
+        await pg_db_read_only.execute("")
+    assert str(exc_info.value) == "Query is empty or only contains comments."
+
+
+@pytest.mark.asyncio
+async def test_read_client_multiple_queries(pg_db_read_only: PostgreSQLDatabase) -> None:
+    # Multiple queries
+    with pytest.raises(PermissionError) as exc_info:
+        await pg_db_read_only.execute(";;;;;INSERT;;;;;")
+    assert str(exc_info.value) == "Multiple statements are not allowed for security reasons."
+
+
+@pytest.mark.asyncio
+async def test_read_client_allows_select(pg_db_read_only: PostgreSQLDatabase) -> None:
+    await pg_db_read_only.execute("SELECT 1")
+
+
+@pytest.mark.asyncio
+async def test_read_client_cte_select_allowed(pg_db_read_only: PostgreSQLDatabase) -> None:
+    await pg_db_read_only.execute(
+        """
+        WITH x AS (
+            SELECT 1 AS value
+        )
+        SELECT value FROM x
+        """
+    )
+
+
+@pytest.mark.asyncio
 async def test_read_client_with_write_query_basic(pg_db_read_only: PostgreSQLDatabase) -> None:
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -85,7 +118,7 @@ async def test_read_client_with_write_query_start_comment(
             "/* comments here */ INSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -98,7 +131,7 @@ async def test_read_client_with_write_query_start_hyphen(
             "-- comment line\nINSERT INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -109,7 +142,7 @@ async def test_read_client_with_write_query_mixed_case(pg_db_read_only: PostgreS
             "   -- comment\nInSeRt INTO users (id, name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -120,7 +153,7 @@ async def test_read_client_with_write_query_start_with(pg_db_read_only: PostgreS
             "WITH x AS (SELECT * FROM users) "
             "INSERT INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation detected inside CTE in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -133,7 +166,7 @@ async def test_read_client_with_write_query_inline_comment(
             "INSERT INTO users (id, /* comment */ name, email) "
             "VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -151,7 +184,7 @@ async def test_read_client_with_write_query_multiline_cte(
             VALUES (1, 'Alice', 'alice@example.com');
             """
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation detected inside CTE in read-only mode."
 
 
 @pytest.mark.asyncio
@@ -163,7 +196,7 @@ async def test_read_client_with_write_query_whitespace_variants(
         await pg_db_read_only.execute(
             "  \n\tINSERT  INTO users (id, name, email) VALUES (1, 'Alice', 'alice@example.com');"
         )
-    assert str(exc_info.value) == "Database is in read-only mode"
+    assert str(exc_info.value) == "Write operation denied. Database is in read-only mode."
 
 
 ## READ & WRITE ##
@@ -230,7 +263,7 @@ async def test_relationship_integrity_empty_table(pg_db: PostgreSQLDatabase) -> 
 
 
 @pytest.mark.asyncio
-async def test_get_table_info(pg_db: PostgreSQLDatabase) -> None:
+async def test_get_table_info_object(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
@@ -239,12 +272,15 @@ async def test_get_table_info(pg_db: PostgreSQLDatabase) -> None:
         "CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
     )
-    res_users = await pg_db.get_table_info("users")
-    res_orders = await pg_db.get_table_info("orders")
+    res_users = await pg_db.get_table_info("users", return_md=False)
+    res_orders = await pg_db.get_table_info("orders", return_md=False)
 
     # Assert
     assert res_users is not None
     assert res_orders is not None
+
+    assert isinstance(res_orders, TableInfo)
+    assert isinstance(res_users, TableInfo)
 
     # Users
     assert res_users.name == "users"
@@ -323,7 +359,7 @@ async def test_get_tables_no_tables(pg_db: PostgreSQLDatabase) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema(pg_db: PostgreSQLDatabase) -> None:
+async def test_get_schema_str(pg_db: PostgreSQLDatabase) -> None:
     # Act
     await pg_db.execute(
         """
@@ -356,17 +392,63 @@ async def test_get_schema(pg_db: PostgreSQLDatabase) -> None:
     res = await pg_db.get_schema()
 
     # Assert
+    assert isinstance(res, str)
+
+
+@pytest.mark.asyncio
+async def test_get_schema_object(pg_db: PostgreSQLDatabase) -> None:
+    # Act
+    await pg_db.execute(
+        """
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            city TEXT NOT NULL
+        );
+        """
+    )
+    await pg_db.execute(
+        """
+        CREATE TABLE orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users (id),
+            product BYTEA UNIQUE
+        );
+        """
+    )
+    await pg_db.execute(
+        """
+        CREATE TABLE products (
+            main_key SERIAL PRIMARY KEY,
+            name BYTEA NOT NULL REFERENCES orders (product),
+            price REAL
+        );
+        """
+    )
+    await pg_db.execute("INSERT INTO users (name, city) VALUES ('test', 'TestCity')")
+    res = await pg_db.get_schema(return_md=False)
+
+    # Assert
     assert res is not None
+    assert isinstance(res, SchemaInfo)
+    assert isinstance(res.tables, list)
+
+    if len(res.tables) > 0:
+        assert isinstance(res.tables[0], TableInfo)
+
+    tables = [t for t in res.tables if isinstance(t, TableInfo)]
 
     # Users
-    users_table = next(t for t in res.tables if t.name == "users")
+    users_table = next(t for t in tables if t.name == "users")
+    assert isinstance(users_table, TableInfo)
     assert users_table.row_count == 1
     assert users_table.columns[0].name == "id"
     assert users_table.columns[0].is_primary_key
     assert len(users_table.columns) == 3
 
     # Orders
-    orders_table = next(t for t in res.tables if t.name == "orders")
+    orders_table = next(t for t in tables if t.name == "orders")
+    assert isinstance(orders_table, TableInfo)
     assert orders_table.row_count == 0
     assert orders_table.primary_key == ["id"]
     assert isinstance(orders_table.foreign_keys, list)
@@ -376,7 +458,8 @@ async def test_get_schema(pg_db: PostgreSQLDatabase) -> None:
     assert orders_table.foreign_keys[0].references_column == "id"
 
     # Products
-    products_table = next(t for t in res.tables if t.name == "products")
+    products_table = next(t for t in tables if t.name == "products")
+    assert isinstance(products_table, TableInfo)
     assert products_table.row_count == 0
     assert products_table.columns[1].data_type == "bytea"
     assert products_table.columns[2].data_type == "real"
@@ -384,13 +467,13 @@ async def test_get_schema(pg_db: PostgreSQLDatabase) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_schema_no_tables(pg_db: PostgreSQLDatabase) -> None:
+async def test_get_schema_no_tables_object(pg_db: PostgreSQLDatabase) -> None:
     # Act
-    res = await pg_db.get_schema()
+    res = await pg_db.get_schema(return_md=False)
 
     # Assert
     assert res is not None
-    assert res == SchemaInfo([])
+    assert res == SchemaInfo(tables=[])
 
 
 @pytest.mark.asyncio

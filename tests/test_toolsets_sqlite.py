@@ -99,17 +99,17 @@ async def test_list_tables(
 
 
 @pytest.mark.asyncio
-async def test_get_schema(
+async def test_get_schema_object(
     context: RunContext[SQLDatabaseDeps], sqlite_client: SQLiteDatabase
 ) -> None:
     toolset = create_database_toolset()
     tool = get_tool(toolset, "get_schema")
 
     # Make the call manually
-    response = await sqlite_client.get_schema()
+    response = await sqlite_client.get_schema(return_md=False)
 
     # Tool call manually
-    result = await tool.function(context)
+    result = await tool.function(context, return_md=False)
 
     # Assert
     assert response == result
@@ -196,7 +196,7 @@ async def test_query_timeout(
 
     async def slow_execute(*args, **kwargs):
         await asyncio.sleep(0.5)
-        return QueryResult([], [], 0, 0)
+        return QueryResult(columns=[], rows=[], row_count=0, execution_time_ms=0)
 
     # Patch the actual execute method on the client instance
     with patch.object(sqlite_client, "execute", side_effect=slow_execute):
