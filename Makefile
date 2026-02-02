@@ -44,8 +44,10 @@ all: format lint typecheck typecheck-mypy typecheck test
 run-example-sqlite:
 	@echo "Setting up SQLite example database..."
 	uv run python examples/sql/sqlite/setup_db.py
-	@echo "Running SQLite example..."
+	@echo "Running SQLite example (manual cleanup pattern)..."
 	uv run python examples/sql/sqlite/usage_example.py
+	@echo "Running SQLite example (context manager pattern)..."
+	uv run python examples/sql/sqlite/usage_example_context_manager.py
 
 run-example-postgres:
 	@echo "Ensuring PostgreSQL is running (requires docker-compose)..."
@@ -54,8 +56,10 @@ run-example-postgres:
 	@sleep 3
 	@echo "Setting up PostgreSQL example database..."
 	uv run python examples/sql/postgresql/setup_db.py
-	@echo "Running PostgreSQL example..."
+	@echo "Running PostgreSQL example (manual cleanup pattern)..."
 	uv run python examples/sql/postgresql/usage_example.py
+	@echo "Running PostgreSQL example (context manager pattern)..."
+	uv run python examples/sql/postgresql/usage_example_context_manager.py
 	@$(MAKE) postgres-down
 
 postgres-down:

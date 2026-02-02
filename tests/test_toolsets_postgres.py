@@ -107,13 +107,19 @@ def context(deps: SQLDatabaseDeps) -> RunContext[SQLDatabaseDeps]:
 
 ### TESTS ###
 def test_toolset_creation() -> None:
+    """
+    Test that the database toolset is created with the correct number of tools.
+
+    Verifies that the toolset contains exactly 5 tools: list_tables, get_schema,
+    describe_table, explain_query, and query.
+    """
     toolset = create_database_toolset()
     # toolset.tools might be a dict or list depending on version,
     # but error suggested it iterates as strings (keys).
     # If it is a dict, .values() gives the tools.
     tools_list = list(toolset.tools.values()) if isinstance(toolset.tools, dict) else toolset.tools
 
-    assert len(tools_list) == 6
+    assert len(tools_list) == 5
     tool_names = {t.name for t in tools_list}
     assert tool_names == {
         "list_tables",
@@ -121,7 +127,6 @@ def test_toolset_creation() -> None:
         "describe_table",
         "explain_query",
         "query",
-        "sample_query",
     }
 
 
@@ -129,6 +134,12 @@ def test_toolset_creation() -> None:
 async def test_list_tables(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the list_tables tool functionality.
+
+    Verifies that the tool correctly retrieves all table names from the database
+    and returns them in the expected format.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "list_tables")
 
@@ -142,15 +153,21 @@ async def test_list_tables(
 
 
 @pytest.mark.asyncio
-async def test_get_schema(
+async def test_get_schema_object(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the get_schema tool functionality with object return format.
+
+    Verifies that the tool correctly retrieves the database schema as a SchemaInfo
+    object when return_md=False.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "get_schema")
 
     # Make the calls manually
-    response = await pg_client.get_schema()
-    result = await tool.function(context)
+    response = await pg_client.get_schema(return_md=False)
+    result = await tool.function(context, return_md=False)
 
     # Assert
     assert response == result
@@ -160,6 +177,12 @@ async def test_get_schema(
 async def test_describe_table(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the describe_table tool functionality.
+
+    Verifies that the tool correctly retrieves detailed information about a
+    specific table, including columns, types, and constraints.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "describe_table")
 
@@ -175,6 +198,12 @@ async def test_describe_table(
 async def test_explain_query(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the explain_query tool functionality.
+
+    Verifies that the tool correctly retrieves the execution plan for a SQL query
+    without actually executing it.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "explain_query")
 
@@ -190,6 +219,12 @@ async def test_explain_query(
 async def test_run_sql_query(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool functionality.
+
+    Verifies that the tool correctly executes a SQL query and returns the results
+    in the expected format, including columns, rows, and execution metadata.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 
@@ -207,6 +242,12 @@ async def test_run_sql_query(
 async def test_run_sql_query_max_rows(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool with max_rows parameter.
+
+    Verifies that the tool correctly limits the number of rows returned by a query
+    when the max_rows parameter is specified.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 
@@ -223,76 +264,21 @@ async def test_run_sql_query_max_rows(
 
 
 @pytest.mark.asyncio
-async def test_run_sample_sql_query(
-    context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
-
-    # Make the calls manually
-    response = await pg_client.execute("SELECT COUNT(*) FROM users")
-    result = await tool.function(context, sql_query="SELECT COUNT(*) FROM users")
-
-    # Assert individually due to execution time being present
-    assert response.columns == result.columns
-    assert response.rows == result.rows
-    assert response.row_count == result.row_count
-
-
-@pytest.mark.asyncio
-async def test_run_sample_sql_query_limit(
-    context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
-
-    # Make the calls manually
-    response = await pg_client.execute("SELECT * FROM users")
-    result = await tool.function(context, sql_query="SELECT * FROM users", limit=1)
-
-    # Assert individually due to execution time being present
-    assert response is not None
-    assert result is not None
-    assert response.columns == result.columns
-    assert response.rows != result.rows
-    assert response.row_count != result.row_count
-    assert len(result) == 1
-    assert len(result) != len(response)
-
-
-@pytest.mark.asyncio
 async def test_query_timeout(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool with timeout handling.
+
+    Verifies that the tool correctly handles query timeouts by returning an empty
+    result when the query exceeds the specified timeout.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 
     async def slow_execute(*args, **kwargs):
         await asyncio.sleep(0.5)
-        return QueryResult([], [], 0, 0)
-
-    # Patch the actual execute method on the client instance
-    with patch.object(pg_client, "execute", side_effect=slow_execute):
-        context.deps.query_timeout = 0.01  # Set timeout much lower than sleep
-        result = await tool.function(context, sql_query="SELECT * FROM users;")
-
-    assert isinstance(result, QueryResult)
-    assert result.columns == []
-    assert result.rows == []
-    assert result.row_count == 0
-    assert result.execution_time_ms == 0
-
-
-@pytest.mark.asyncio
-async def test_sample_query_timeout(
-    context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
-) -> None:
-    toolset = create_database_toolset()
-    tool = get_tool(toolset, "sample_query")
-
-    async def slow_execute(*args, **kwargs):
-        await asyncio.sleep(0.5)
-        return QueryResult([], [], 0, 0)
+        return QueryResult(columns=[], rows=[], row_count=0, execution_time_ms=0)
 
     # Patch the actual execute method on the client instance
     with patch.object(pg_client, "execute", side_effect=slow_execute):

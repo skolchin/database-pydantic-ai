@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from loguru import logger
 
-DB_PATH = "example.db"
+DB_PATH = "./examples/sql/sqlite/example.db"
 
 
 def generate_random_string(length=8):

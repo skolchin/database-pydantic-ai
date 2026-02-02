@@ -22,6 +22,20 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         self.db_path = db_path
         self._connection: aiosqlite.Connection | None = None
 
+    async def __aenter__(self) -> "SQLiteDatabase":
+        """Support for `async with` context manager"""
+        await self.connect()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: BaseException | None,
+    ) -> None:
+        """Ensure the connection is closed when exiting the context."""
+        await self.close()
+
     async def connect(self) -> None:
         """Connect to the database"""
         if not self._connection:
@@ -41,10 +55,15 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """Execute a SQL query with optional parameters."""
-        if self.read_only and self._is_write_query(query):
-            raise PermissionError("Database is in read-only mode")
+        safe_query = self.check_query_safety(query)
+        # if self.read_only and self._is_write_query(query):
+        #     raise PermissionError("Database is in read-only mode")
 
         await self.connect()
+        # Check if connection was successfully established
+        if self._connection is None:
+            raise RuntimeError("Failed to establish database connection")
+
         start_time = time.perf_counter()
 
         # Check if connection exists to satisfy MyPy and prevent runtime crashes
@@ -52,7 +71,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             raise RuntimeError("Database connection is not initialized. Call connect() first.")
 
         # While using `aiosqlite`, executed call has to be awaited
-        async with self._connection.execute(query, params or ()) as cursor:
+        async with self._connection.execute(safe_query, params or ()) as cursor:
             rows = await cursor.fetchall()
 
             # Convert `sqlite3.Row` object to tuples for the protocol
@@ -97,7 +116,9 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
         return foreign_keys
 
-    async def get_table_info(self, table_name: str) -> TableInfo | None:
+    async def get_table_info(
+        self, table_name: str, return_md: bool = True
+    ) -> TableInfo | str | None:
         """Get detailed information about a specific table."""
         tables = await self.get_tables()
         if table_name not in tables:
@@ -130,7 +151,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         count_res = await self.execute(f"SELECT COUNT(*) FROM {table_name};")
         actual_row_count = count_res.rows[0][0] if count_res.rows else 0
 
-        return TableInfo(
+        table = TableInfo(
             name=table_name,
             columns=columns,
             row_count=actual_row_count,
@@ -138,12 +159,22 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             foreign_keys=foreign_keys,
         )
 
-    async def get_schema(self) -> SchemaInfo:
+        if return_md:
+            table_md = self.render_table_as_markdown(table)
+            return table_md
+
+        return table
+
+    async def get_schema(self, return_md: bool = True) -> SchemaInfo | str:
         """Get database schema information."""
         table_names = await self.get_tables()
 
-        tasks = [self.get_table_info(table_name) for table_name in table_names]
+        tasks = [self.get_table_info(table_name, return_md=return_md) for table_name in table_names]
         tables = await asyncio.gather(*tasks)
+
+        if return_md:
+            str_tables = [str(t) for t in tables if t]
+            return "\n".join(str_tables)
 
         # Filter out empty responses in the output
         return SchemaInfo(tables=[t for t in tables if t])

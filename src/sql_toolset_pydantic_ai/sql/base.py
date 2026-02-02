@@ -1,51 +1,116 @@
 import re
 
+from sql_toolset_pydantic_ai.types import TableInfo
+
 
 class BaseSQLDatabase:
     """
     Abstract base class providing shared utility logic for SQL backends.
     """
 
-    FORBIDDEN_KEYS = {"INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "REPLACE", "VACUUM"}
+    FORBIDDEN_KEYS = {
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "DROP",
+        "ALTER",
+        "CREATE",
+        "REPLACE",
+        "VACUUM",
+        "TRUNCATE",
+        "GRANT",
+        "REVOKE",
+        "COPY",
+        "MERGE",
+        "CALL",
+        "DO",
+    }
 
     def __init__(self, read_only: bool = True) -> None:
         self.read_only = read_only
 
-    def _is_write_query(self, query: str) -> bool:
-        sql = query.upper().strip()
+    def check_query_safety(self, query: str) -> str:
+        """
+        The single entry point for all query validations.
 
-        # Strip leading SQL comments
-        while sql.startswith("--") or sql.startswith("/*"):
-            if sql.startswith("--"):
-                sql = sql.split("\n", 1)[-1].lstrip()
-            else:
-                _, _, sql = sql.partition("*/")
-                sql = sql.lstrip()
+        Returns the prepared query string if all checks pass.
+        Raises PermissionError or ValueError if validation fails.
+        """
+        prepared_query = self._prepare_query(query)
 
-        # Collapse all whitespace and remove inline comments for safer detection
+        if not prepared_query:
+            raise ValueError("Query is empty or only contains comments.")
 
-        sql_clean = re.sub(r"/\*.*?\*/", " ", sql, flags=re.DOTALL)
-        sql_clean = re.sub(r"--.*", " ", sql_clean)
-        sql_clean = " ".join(sql_clean.split())  # normalize whitespace
+        # Perform individual checks
+        self._check_singular_query(prepared_query)
+        self._check_permissions(prepared_query)
 
-        # Check forbidden keywords at start or after a CTE
-        if sql_clean.startswith("WITH"):
-            # Remove the initial WITH clause up to the first semicolon or forbidden keyword
-            # and see if any forbidden keyword appears next
-            return any(kw in sql_clean for kw in self.FORBIDDEN_KEYS)
+        return prepared_query
 
-        return any(sql_clean.startswith(kw) for kw in self.FORBIDDEN_KEYS)
+    def _prepare_query(self, query: str) -> str:
+        """Strips comments and normalizes whitespace."""
+        # Strip block comments
+        sql = re.sub(r"/\*.*?\*/", " ", query, flags=re.DOTALL)
+        # Strip line comments
+        sql = re.sub(r"--.*", " ", sql)
+        # Normalize whitespace
+        return " ".join(sql.split()).strip()
+
+    def _check_singular_query(self, cleaned_query: str) -> None:
+        """Ensures only one SQL statement is present."""
+        if ";" in cleaned_query.rstrip(";"):
+            raise PermissionError("Multiple statements are not allowed for security reasons.")
+
+    def _check_permissions(self, cleaned_query: str) -> None:
+        """Enforces read-only restrictions if enabled."""
+        if not self.read_only:
+            return
+
+        upper_sql = cleaned_query.upper()
+
+        # Handle CTEs by checking the whole string for forbidden keywords
+        if upper_sql.startswith("WITH"):
+            if any(kw in upper_sql for kw in self.FORBIDDEN_KEYS):
+                raise PermissionError("Write operation detected inside CTE in read-only mode.")
+
+        # Handle standard queries by checking the starting keyword
+        elif any(upper_sql.startswith(kw) for kw in self.FORBIDDEN_KEYS):
+            raise PermissionError("Write operation denied. Database is in read-only mode.")
+
+    # LEGACY PART EXCHANGED FOR NEW
+    # def _is_write_query(self, query: str) -> bool:
+    #     """Legacy support/Utility: Returns True if query contains write keywords."""
+    #     try:
+    #         self._check_permissions(self._prepare_query(query))
+    #         return False
+    #     except PermissionError:
+    #         return True
+
+    # TODO discuss if validator is needed for future purposes
+    # def _is_valid_identifier(self, table_name: str) -> str:
+    #     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
+    #         raise ValueError(f"Invalid SQL identifier: {table_name}")
+    #     return table_name
 
     # TODO discuss if markdown return is scheduled
-    # def format_results_as_markdown(self, result: QueryResult) -> str:
-    #     """Standardizes how the LLM sees the data."""
-    #     if not result.columns:
-    #         return "Query executed successfully. No rows returned."
+    def render_table_as_markdown(self, table: TableInfo) -> str:
+        """Standardizes how the LLM sees the data."""
 
-    #     header = "| " + " | ".join(result.columns) + " |"
-    #     separator = "| " + " | ".join(["---"] * len(result.columns)) + " |"
-    #     rows = []
-    #     for row in result.rows:
-    #         rows.append("| " + " | ".join(map(str, row)) + " |")
+        # Build the components in a flat list of strings
+        components = []
+        components.append(f"#### {table.name} ####")
 
-    #     return "\n".join([header, separator] + rows)
+        # Extract column names for the header
+        column_names = list(table.columns[0].model_dump().keys())
+        components.append("| " + " | ".join(column_names) + " |")
+
+        # Add the spacer (must be below the header)
+        components.append("| " + " | ".join(["---"] * len(column_names)) + " |")
+
+        # Add the rows
+        for col in table.columns:
+            row_values = [str(v) for v in col.model_dump().values()]
+            components.append(f"| {' | '.join(row_values)} |")
+
+        # Join everything exactly once
+        return "\n".join(components)

@@ -5,9 +5,29 @@ Provides comprehensive support for both SQL and non-SQL databases.
 Works with any PydanticAI agent - no specific dependencies nor requirements.
 
 Example:
-<example_here>
+    from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+    from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps
+
+    async def main():
+        # Create a database connection
+        async with SQLiteDatabase(":memory:", read_only=False) as db:
+            # Create a database toolset for PydanticAI
+            toolset = create_database_toolset(id="my-database")
+
+            # Use the toolset with PydanticAI
+            from pydantic_ai import Agent
+
+            agent = Agent(
+                model="gpt-4",
+                deps_type=SQLDatabaseDeps,
+                deps=SQLDatabaseDeps(database=db, read_only=True),
+                tools=toolset,
+            )
+
+            result = agent.run_sync("List all tables in the database")
+            print(result.data)
 """
-# TODO - update example
+# Example usage is now documented in the docstring above
 
 from importlib.metadata import version
 
@@ -17,7 +37,7 @@ from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 
 # Toolsets
 from sql_toolset_pydantic_ai.sql.toolset import (
-    SQL_SYSTEM_PROMPT,
+    SQLITE_SYSTEM_PROMPT,
     SQLDatabaseDeps,
     create_database_toolset,
 )
@@ -46,7 +66,7 @@ __all__ = [
     "ForeignKeyInfo",
     "SchemaInfo",
     # Constants (e.g. prompts)
-    "SQL_SYSTEM_PROMPT",
+    "SQLITE_SYSTEM_PROMPT",
 ]
 
 __version__ = version("sql-toolset-pydantic-ai")

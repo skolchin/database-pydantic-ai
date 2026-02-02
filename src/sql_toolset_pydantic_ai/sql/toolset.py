@@ -1,15 +1,16 @@
 """PydanticAI toolset for AI agents used to inference with database on given permission level"""
 
 import asyncio
-from dataclasses import dataclass
+from typing import Annotated
 
+from pydantic import BaseModel, ConfigDict, SkipValidation
 from pydantic_ai import FunctionToolset, RunContext
 
 from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
 from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
 
-SQL_SYSTEM_PROMPT = """
-## SQL Database Toolset
+SQLITE_SYSTEM_PROMPT = """
+## SQLite Database Toolset
 
 ### IMPORTANT
 * Database may be running in READ-ONLY mode
@@ -21,7 +22,6 @@ You have access to SQLite database tools for database operations and querying:
 * `describe_table` - describe table's content
 * `explain_query` - explains dependencies which given SQL query needs to run
 * `query` - execute a SQL query on a database to retrieve data
-* `sample_query` - execute a sample SQL query to retrieve data
 
 ### Best Practices
 * Always try to perform sample data query before performing full query process
@@ -31,8 +31,7 @@ You have access to SQLite database tools for database operations and querying:
 """
 
 
-@dataclass
-class SQLDatabaseDeps:
+class SQLDatabaseDeps(BaseModel):
     """
     Dependencies for the SQL database toolset.
 
@@ -44,7 +43,9 @@ class SQLDatabaseDeps:
         id: Optional dependency ID.
     """
 
-    database: SQLDatabaseProtocol
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    database: Annotated[SQLDatabaseProtocol, SkipValidation]
     read_only: bool = True
     max_rows: int = 100
     query_timeout: float = 30.0
@@ -75,17 +76,19 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLData
         return await ctx.deps.database.get_tables()
 
     @toolset.tool
-    async def get_schema(ctx: RunContext[SQLDatabaseDeps]) -> SchemaInfo:
+    async def get_schema(ctx: RunContext[SQLDatabaseDeps], return_md: bool) -> SchemaInfo | str:
         """
         Get an overview of the database schema.
 
         Returns:
             List of all tables with their column counts and row counts.
         """
-        return await ctx.deps.database.get_schema()
+        return await ctx.deps.database.get_schema(return_md=return_md)
 
     @toolset.tool
-    async def describe_table(ctx: RunContext[SQLDatabaseDeps], table_name: str) -> TableInfo | None:
+    async def describe_table(
+        ctx: RunContext[SQLDatabaseDeps], table_name: str
+    ) -> TableInfo | str | None:
         """
         Get detailed information about a specific table.
 
@@ -146,46 +149,6 @@ def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLData
             )
 
         limit = max_rows or ctx.deps.max_rows
-
-        if len(result.rows) > limit:
-            result = QueryResult(
-                columns=result.columns,
-                rows=result.rows[:limit],
-                row_count=min(result.row_count, limit),
-                execution_time_ms=result.execution_time_ms,
-            )
-
-        return result
-
-    @toolset.tool
-    async def sample_query(
-        ctx: RunContext[SQLDatabaseDeps], sql_query: str, limit: int = 5
-    ) -> QueryResult:
-        """
-        Perform a sample query to explore the data stored in database.
-
-        Args:
-            sql_query: SQL query to be executed.
-            limit: Maximum number of rows to be returned (default: 5)
-
-        Returns:
-            QueryResults object with queried data.
-
-        Example:
-            query("SELECT id, name FROM users WHERE is_banned = true;")
-        """
-        try:
-            result = await asyncio.wait_for(
-                ctx.deps.database.execute(sql_query), timeout=ctx.deps.query_timeout
-            )
-
-        except asyncio.TimeoutError:
-            return QueryResult(
-                columns=[],
-                rows=[],
-                row_count=0,
-                execution_time_ms=0,  # indicate max wait with `0`
-            )
 
         if len(result.rows) > limit:
             result = QueryResult(
