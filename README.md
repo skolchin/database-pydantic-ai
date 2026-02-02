@@ -57,29 +57,28 @@ from dotenv import load_dotenv
 load_dotenv()
 
 async def main():
-    # 1. Initialize the database backend
-    db = SQLiteDatabase("data.db")
+    # 1. Initialize the database backend & Setup dependencies
+    # Using async context manager ensures the database connection is properly closed
+    async with SQLiteDatabase("data.db") as db:
+        deps = SQLDatabaseDeps(database=db, read_only=True)
 
-    # 2. Setup dependencies
-    deps = SQLDatabaseDeps(database=db, read_only=True)
+        # 2. Create the toolset
+        toolset = create_database_toolset()
 
-    # 3. Create the toolset
-    toolset = create_database_toolset()
+        # 3. Initialize the Agent
+        agent = Agent(
+            "openai:gpt-4o",
+            deps_type=SQLDatabaseDeps,
+            toolsets=[toolset],
+            system_prompt=SQLITE_SYSTEM_PROMPT
+        )
 
-    # 4. Initialize the Agent
-    agent = Agent(
-        "openai:gpt-4o",
-        deps_type=SQLDatabaseDeps,
-        toolsets=[toolset],
-        system_prompt=SQLITE_SYSTEM_PROMPT
-    )
-
-    # 5. Run the agent
-    result = await agent.run(
-        "What are the top 5 most expensive products in our database?",
-        deps=deps
-    )
-    print(result.output)
+        # 4. Run the agent
+        result = await agent.run(
+            "What are the top 5 most expensive products in our database?",
+            deps=deps
+        )
+        print(result.output)
 
 if __name__ == "__main__":
     asyncio.run(main())

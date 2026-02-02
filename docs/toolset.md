@@ -24,6 +24,59 @@ deps = SQLDatabaseDeps(
 )
 ```
 
+## Resource Management
+
+The database backends support two patterns for managing connections:
+
+### Manual Cleanup
+
+```python
+from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+
+db = SQLiteDatabase(":memory:", read_only=False)
+try:
+    # Use the database
+    result = await agent.run(user_prompt="...", deps=deps)
+finally:
+    await db.close()
+```
+
+### Async Context Manager (Recommended)
+
+```python
+from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+
+async with SQLiteDatabase(":memory:", read_only=False) as db:
+    # Use the database
+    result = await agent.run(user_prompt="...", deps=deps)
+# Connection is automatically closed
+```
+
+The async context manager pattern is recommended as it ensures proper cleanup even if exceptions occur. See the [examples](../examples.md) directory for complete working examples.
+
+## System Prompts
+
+The library provides pre-configured system prompts to help guide the AI agent in using the SQL tools effectively.
+
+### `SQLITE_SYSTEM_PROMPT`
+
+This prompt includes instructions for the agent on how to:
+
+- Respect read-only mode.
+- Use the available tools in the correct order (e.g., list tables -> get schema -> query).
+- Apply best practices like using `LIMIT` and validating queries against the schema.
+
+It is highly recommended to use this prompt when initializing your agent:
+
+```python
+from sql_toolset_pydantic_ai.sql.toolset import SQLITE_SYSTEM_PROMPT
+
+agent = Agent(
+    ...,
+    system_prompt=SQLITE_SYSTEM_PROMPT
+)
+```
+
 ## Available Tools
 
 When you call `create_database_toolset()`, the following tools are made available to the agent:
