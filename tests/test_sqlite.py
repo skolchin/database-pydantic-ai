@@ -27,6 +27,12 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 ## READ-ONLY ##
 @pytest.mark.asyncio
 async def test_read_client_without_query(sqlite_client_read_only: SQLiteDatabase) -> None:
+    """
+    Test that an empty query raises a ValueError.
+
+    Verifies that the database backend properly validates queries and raises
+    a ValueError when an empty query is provided.
+    """
     # No Query
     with pytest.raises(ValueError) as exc_info:
         await sqlite_client_read_only.execute("")
@@ -35,6 +41,12 @@ async def test_read_client_without_query(sqlite_client_read_only: SQLiteDatabase
 
 @pytest.mark.asyncio
 async def test_read_client_multiple_queries(sqlite_client_read_only: SQLiteDatabase) -> None:
+    """
+    Test that multiple SQL statements are rejected for security.
+
+    Verifies that the database backend properly validates queries and raises
+    a PermissionError when multiple statements are provided.
+    """
     # Multiple queries
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(";;;;;INSERT;;;;;")
@@ -43,11 +55,23 @@ async def test_read_client_multiple_queries(sqlite_client_read_only: SQLiteDatab
 
 @pytest.mark.asyncio
 async def test_read_client_allows_select(sqlite_client_read_only: SQLiteDatabase) -> None:
+    """
+    Test that SELECT queries are allowed in read-only mode.
+
+    Verifies that the database backend properly allows SELECT queries when
+    read-only mode is enabled.
+    """
     await sqlite_client_read_only.execute("SELECT 1")
 
 
 @pytest.mark.asyncio
 async def test_read_client_cte_select_allowed(sqlite_client_read_only: SQLiteDatabase) -> None:
+    """
+    Test that SELECT queries with CTEs are allowed in read-only mode.
+
+    Verifies that the database backend properly allows SELECT queries with
+    Common Table Expressions (CTEs) when read-only mode is enabled.
+    """
     await sqlite_client_read_only.execute(
         """
         WITH x AS (
@@ -60,6 +84,12 @@ async def test_read_client_cte_select_allowed(sqlite_client_read_only: SQLiteDat
 
 @pytest.mark.asyncio
 async def test_read_client_with_write_query_basic(sqlite_client_read_only: SQLiteDatabase) -> None:
+    """
+    Test that basic INSERT queries are rejected in read-only mode.
+
+    Verifies that the database backend properly rejects INSERT queries when
+    read-only mode is enabled.
+    """
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -72,6 +102,12 @@ async def test_read_client_with_write_query_basic(sqlite_client_read_only: SQLit
 async def test_read_client_with_write_query_start_comment(
     sqlite_client_read_only: SQLiteDatabase,
 ) -> None:
+    """
+    Test that INSERT queries with leading block comments are rejected.
+
+    Verifies that the database backend properly detects and rejects write
+    operations even when they are preceded by block comments.
+    """
     # Leading block comment
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -85,6 +121,12 @@ async def test_read_client_with_write_query_start_comment(
 async def test_read_client_with_write_query_start_hyphen(
     sqlite_client_read_only: SQLiteDatabase,
 ) -> None:
+    """
+    Test that INSERT queries with leading line comments are rejected.
+
+    Verifies that the database backend properly detects and rejects write
+    operations even when they are preceded by line comments.
+    """
     # Leading line comment
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -98,6 +140,12 @@ async def test_read_client_with_write_query_start_hyphen(
 async def test_read_client_with_write_query_mixed_case(
     sqlite_client_read_only: SQLiteDatabase,
 ) -> None:
+    """
+    Test that INSERT queries with mixed case and comments are rejected.
+
+    Verifies that the database backend properly detects and rejects write
+    operations regardless of case sensitivity or leading whitespace/comments.
+    """
     # Mixed case and leading spaces/comments
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(
@@ -111,6 +159,12 @@ async def test_read_client_with_write_query_mixed_case(
 async def test_read_client_with_write_query_start_with(
     sqlite_client_read_only: SQLiteDatabase,
 ) -> None:
+    """
+    Test that INSERT queries inside CTEs are rejected in read-only mode.
+
+    Verifies that the database backend properly detects and rejects write
+    operations even when they are hidden within Common Table Expressions (CTEs).
+    """
     # CTE with forbidden keyword inside
     with pytest.raises(PermissionError) as exc_info:
         await sqlite_client_read_only.execute(

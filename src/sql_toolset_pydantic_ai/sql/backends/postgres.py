@@ -80,6 +80,7 @@ class PostgreSQLDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         safe_query = self.check_query_safety(query)
 
         pool = await self.connect()
+        # Check if connection pool was successfully established
         if pool is None:
             raise RuntimeError("Failed to establish database connection")
 

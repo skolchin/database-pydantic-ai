@@ -67,6 +67,12 @@ async def pg_db_read_only(
 ## READ-ONLY ##
 @pytest.mark.asyncio
 async def test_read_client_without_query(pg_db_read_only: PostgreSQLDatabase) -> None:
+    """
+    Test that an empty query raises a ValueError.
+
+    Verifies that the PostgreSQL database backend properly validates queries
+    and raises a ValueError when an empty query is provided.
+    """
     # No Query
     with pytest.raises(ValueError) as exc_info:
         await pg_db_read_only.execute("")
@@ -75,6 +81,12 @@ async def test_read_client_without_query(pg_db_read_only: PostgreSQLDatabase) ->
 
 @pytest.mark.asyncio
 async def test_read_client_multiple_queries(pg_db_read_only: PostgreSQLDatabase) -> None:
+    """
+    Test that multiple SQL statements are rejected for security.
+
+    Verifies that the PostgreSQL database backend properly validates queries
+    and raises a PermissionError when multiple statements are provided.
+    """
     # Multiple queries
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(";;;;;INSERT;;;;;")
@@ -83,11 +95,23 @@ async def test_read_client_multiple_queries(pg_db_read_only: PostgreSQLDatabase)
 
 @pytest.mark.asyncio
 async def test_read_client_allows_select(pg_db_read_only: PostgreSQLDatabase) -> None:
+    """
+    Test that SELECT queries are allowed in read-only mode.
+
+    Verifies that the PostgreSQL database backend properly allows SELECT queries
+    when read-only mode is enabled.
+    """
     await pg_db_read_only.execute("SELECT 1")
 
 
 @pytest.mark.asyncio
 async def test_read_client_cte_select_allowed(pg_db_read_only: PostgreSQLDatabase) -> None:
+    """
+    Test that SELECT queries with CTEs are allowed in read-only mode.
+
+    Verifies that the PostgreSQL database backend properly allows SELECT queries
+    with Common Table Expressions (CTEs) when read-only mode is enabled.
+    """
     await pg_db_read_only.execute(
         """
         WITH x AS (
@@ -100,6 +124,12 @@ async def test_read_client_cte_select_allowed(pg_db_read_only: PostgreSQLDatabas
 
 @pytest.mark.asyncio
 async def test_read_client_with_write_query_basic(pg_db_read_only: PostgreSQLDatabase) -> None:
+    """
+    Test that basic INSERT queries are rejected in read-only mode.
+
+    Verifies that the PostgreSQL database backend properly rejects INSERT queries
+    when read-only mode is enabled.
+    """
     # Basic INSERT
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -112,6 +142,12 @@ async def test_read_client_with_write_query_basic(pg_db_read_only: PostgreSQLDat
 async def test_read_client_with_write_query_start_comment(
     pg_db_read_only: PostgreSQLDatabase,
 ) -> None:
+    """
+    Test that INSERT queries with leading block comments are rejected.
+
+    Verifies that the PostgreSQL database backend properly detects and rejects
+    write operations even when they are preceded by block comments.
+    """
     # Leading block comment
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(
@@ -125,6 +161,12 @@ async def test_read_client_with_write_query_start_comment(
 async def test_read_client_with_write_query_start_hyphen(
     pg_db_read_only: PostgreSQLDatabase,
 ) -> None:
+    """
+    Test that INSERT queries with leading line comments are rejected.
+
+    Verifies that the PostgreSQL database backend properly detects and rejects
+    write operations even when they are preceded by line comments.
+    """
     # Leading line comment
     with pytest.raises(PermissionError) as exc_info:
         await pg_db_read_only.execute(

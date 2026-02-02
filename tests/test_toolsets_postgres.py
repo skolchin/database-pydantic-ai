@@ -107,6 +107,12 @@ def context(deps: SQLDatabaseDeps) -> RunContext[SQLDatabaseDeps]:
 
 ### TESTS ###
 def test_toolset_creation() -> None:
+    """
+    Test that the database toolset is created with the correct number of tools.
+
+    Verifies that the toolset contains exactly 5 tools: list_tables, get_schema,
+    describe_table, explain_query, and query.
+    """
     toolset = create_database_toolset()
     # toolset.tools might be a dict or list depending on version,
     # but error suggested it iterates as strings (keys).
@@ -128,6 +134,12 @@ def test_toolset_creation() -> None:
 async def test_list_tables(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the list_tables tool functionality.
+
+    Verifies that the tool correctly retrieves all table names from the database
+    and returns them in the expected format.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "list_tables")
 
@@ -144,6 +156,12 @@ async def test_list_tables(
 async def test_get_schema_object(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the get_schema tool functionality with object return format.
+
+    Verifies that the tool correctly retrieves the database schema as a SchemaInfo
+    object when return_md=False.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "get_schema")
 
@@ -159,6 +177,12 @@ async def test_get_schema_object(
 async def test_describe_table(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the describe_table tool functionality.
+
+    Verifies that the tool correctly retrieves detailed information about a
+    specific table, including columns, types, and constraints.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "describe_table")
 
@@ -174,6 +198,12 @@ async def test_describe_table(
 async def test_explain_query(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the explain_query tool functionality.
+
+    Verifies that the tool correctly retrieves the execution plan for a SQL query
+    without actually executing it.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "explain_query")
 
@@ -189,6 +219,12 @@ async def test_explain_query(
 async def test_run_sql_query(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool functionality.
+
+    Verifies that the tool correctly executes a SQL query and returns the results
+    in the expected format, including columns, rows, and execution metadata.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 
@@ -206,6 +242,12 @@ async def test_run_sql_query(
 async def test_run_sql_query_max_rows(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool with max_rows parameter.
+
+    Verifies that the tool correctly limits the number of rows returned by a query
+    when the max_rows parameter is specified.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 
@@ -225,6 +267,12 @@ async def test_run_sql_query_max_rows(
 async def test_query_timeout(
     context: RunContext[SQLDatabaseDeps], pg_client: PostgreSQLDatabase
 ) -> None:
+    """
+    Test the query tool with timeout handling.
+
+    Verifies that the tool correctly handles query timeouts by returning an empty
+    result when the query exceeds the specified timeout.
+    """
     toolset = create_database_toolset()
     tool = get_tool(toolset, "query")
 

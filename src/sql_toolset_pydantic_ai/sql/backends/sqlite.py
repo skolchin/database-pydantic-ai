@@ -60,6 +60,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         #     raise PermissionError("Database is in read-only mode")
 
         await self.connect()
+        # Check if connection was successfully established
         if self._connection is None:
             raise RuntimeError("Failed to establish database connection")
 

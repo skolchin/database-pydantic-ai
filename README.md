@@ -16,7 +16,7 @@ A powerful PydanticAI toolset designed to empower AI agents with SQL database ca
 ## Key Features
 
 - **Multi-Backend Support**: Out-of-the-box support for **SQLite** (via `aiosqlite`) and **PostgreSQL** (via `asyncpg`).
-- **Standardized Toolset**: Consistent interface for AI agents across different database types.
+- **Standardized Toolset**: Consistent interface for AI agents using **Pydantic models** for all data structures.
 - **Security-First**: Built-in `read_only` mode to protect your data from accidental modifications.
 - **Resource Management**: Configurable query timeouts and maximum row limits to prevent runaway queries.
 - **Deep Exploration**: Tools for listing tables, fetching schemas, describing table structures, and explaining query plans.
