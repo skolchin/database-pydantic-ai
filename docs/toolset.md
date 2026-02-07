@@ -14,7 +14,7 @@ To use the toolset, you must provide an instance of `SQLDatabaseDeps` to your ag
 | `query_timeout` | `float` | `30.0` | Timeout in seconds for database queries. |
 
 ```python
-from sql_toolset_pydantic_ai.sql.toolset import SQLDatabaseDeps
+from database_pydantic_ai.sql.toolset import SQLDatabaseDeps
 
 deps = SQLDatabaseDeps(
     database=db,
@@ -31,7 +31,7 @@ The database backends support two patterns for managing connections:
 ### Manual Cleanup
 
 ```python
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 
 db = SQLiteDatabase(":memory:", read_only=False)
 try:
@@ -44,7 +44,7 @@ finally:
 ### Async Context Manager (Recommended)
 
 ```python
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 
 async with SQLiteDatabase(":memory:", read_only=False) as db:
     # Use the database
@@ -69,7 +69,7 @@ This prompt includes instructions for the agent on how to:
 It is highly recommended to use this prompt when initializing your agent:
 
 ```python
-from sql_toolset_pydantic_ai.sql.toolset import SQLITE_SYSTEM_PROMPT
+from database_pydantic_ai.sql.toolset import SQLITE_SYSTEM_PROMPT
 
 agent = Agent(
     ...,

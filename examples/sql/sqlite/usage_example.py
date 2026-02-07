@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from loguru import logger
 from pydantic_ai import Agent
 
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.sql.toolset import (
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.toolset import (
     SQLITE_SYSTEM_PROMPT,
     SQLDatabaseDeps,
     create_database_toolset,
@@ -20,7 +20,7 @@ DB_PATH = "example.db"
 async def run_sql_agent_example():
     """
     Demonstrate how to empower a Pydantic AI agent with SQL capabilities
-    using the sql-toolset-pydantic-ai package.
+    using the database-pydantic-ai package.
     """
     logger.info("--- Pydantic AI SQL Toolset Example (SQLite) ---")
 

@@ -5,8 +5,8 @@ Provides comprehensive support for both SQL and non-SQL databases.
 Works with any PydanticAI agent - no specific dependencies nor requirements.
 
 Example:
-    from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-    from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps
+    from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+    from database_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps
 
     async def main():
         # Create a database connection
@@ -32,18 +32,18 @@ Example:
 from importlib.metadata import version
 
 # Backends
-from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 
 # Toolsets
-from sql_toolset_pydantic_ai.sql.toolset import (
+from database_pydantic_ai.sql.toolset import (
     SQLITE_SYSTEM_PROMPT,
     SQLDatabaseDeps,
     create_database_toolset,
 )
 
 # Types
-from sql_toolset_pydantic_ai.types import (
+from database_pydantic_ai.types import (
     ColumnInfo,
     ForeignKeyInfo,
     QueryResult,
@@ -69,4 +69,4 @@ __all__ = [
     "SQLITE_SYSTEM_PROMPT",
 ]
 
-__version__ = version("sql-toolset-pydantic-ai")
+__version__ = version("database-pydantic-ai")

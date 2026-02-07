@@ -5,7 +5,7 @@ We recommend using `uv` to manage your project's dependencies.
 ## Using uv
 
 ```bash
-uv add sql-toolset-pydantic-ai
+uv add database-pydantic-ai
 ```
 
 ## Database Drivers

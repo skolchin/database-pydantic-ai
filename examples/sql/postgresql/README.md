@@ -1,6 +1,6 @@
 # PostgreSQL Example
 
-This directory contains a complete example of using the `sql-toolset-pydantic-ai` with a PostgreSQL database.
+This directory contains a complete example of using the `database-pydantic-ai` with a PostgreSQL database.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ This directory contains a complete example of using the `sql-toolset-pydantic-ai
 2. **Install dependencies:**
 
    ```bash
-   uv add sql-toolset-pydantic-ai psycopg2-binary
+   uv add database-pydantic-ai psycopg2-binary
    ```
 
 3. **Configure environment variables:**

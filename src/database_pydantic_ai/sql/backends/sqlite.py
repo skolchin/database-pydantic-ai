@@ -5,9 +5,9 @@ from typing import Any
 
 import aiosqlite
 
-from sql_toolset_pydantic_ai.sql.base import BaseSQLDatabase
-from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
-from sql_toolset_pydantic_ai.types import (
+from database_pydantic_ai.sql.base import BaseSQLDatabase
+from database_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from database_pydantic_ai.types import (
     ColumnInfo,
     ForeignKeyInfo,
     QueryResult,

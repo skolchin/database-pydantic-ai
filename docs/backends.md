@@ -1,14 +1,14 @@
 # Database Backends
 
-`sql-toolset-pydantic-ai` supports multiple database backends through a unified `SQLDatabaseProtocol`. These backends are designed to be passed into `SQLDatabaseDeps`, providing the actual implementation for the AI tools.
+`database-pydantic-ai` supports multiple database backends through a unified `SQLDatabaseProtocol`. These backends are designed to be passed into `SQLDatabaseDeps`, providing the actual implementation for the AI tools.
 
 ## SQLite
 
 The `SQLiteDatabase` backend uses `aiosqlite` for asynchronous database access. It's the simplest way to get started and supports automatic connection management via async context managers.
 
 ```python
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.sql.toolset import SQLDatabaseDeps
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.toolset import SQLDatabaseDeps
 
 # Recommended: Initialize the backend using an async context manager
 async with SQLiteDatabase("path/to/database.db") as db:
@@ -31,8 +31,8 @@ async with SQLiteDatabase("path/to/database.db") as db:
 The `PostgreSQLDatabase` backend uses `asyncpg` for high-performance asynchronous access with built-in connection pooling.
 
 ```python
-from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
-from sql_toolset_pydantic_ai.sql.toolset import SQLDatabaseDeps
+from database_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
+from database_pydantic_ai.sql.toolset import SQLDatabaseDeps
 
 # Recommended: Initialize the backend using an async context manager
 async with PostgreSQLDatabase(
@@ -70,8 +70,8 @@ You can support any database by implementing the `SQLDatabaseProtocol`. This all
 
 ```python
 from typing import Any
-from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
-from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo, ForeignKeyInfo
+from database_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from database_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo, ForeignKeyInfo
 
 class MyCustomDB(SQLDatabaseProtocol):
     async def connect(self) -> None: ...

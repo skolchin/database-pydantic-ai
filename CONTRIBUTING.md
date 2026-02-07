@@ -1,12 +1,12 @@
-# Contributing to sql-toolset-pydantic-ai
+# Contributing to database-pydantic-ai
 
 Thanks for your interest in contributing!
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/vstorm-co/sql-toolset-pydantic-ai.git
-cd sql-toolset-pydantic-ai
+git clone https://github.com/vstorm-co/database-pydantic-ai.git
+cd database-pydantic-ai
 make install
 ```
 
@@ -100,4 +100,4 @@ uv run pytest tests/test_sqlite.py -v -s
 
 ## Questions?
 
-Open an issue on [GitHub](https://github.com/vstorm-co/sql-toolset-pydantic-ai/issues).
+Open an issue on [GitHub](https://github.com/vstorm-co/database-pydantic-ai/issues).

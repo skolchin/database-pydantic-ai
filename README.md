@@ -1,155 +1,205 @@
-# sql-toolset-pydantic-ai
+<h1 align="center">Database Toolset for Pydantic AI</h1>
 
-![logo](docs/assets/logo.png)
+<p align="center">
+  <em>Empower AI Agents with SQL Database Capabilities</em>
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/sql-toolset-pydantic-ai.svg)](https://pypi.org/project/sql-toolset-pydantic-ai/)
-[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sql-toolset-pydantic-ai.svg)](https://pypi.org/project/sql-toolset-pydantic-ai/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/vstorm/sql-toolset-pydantic-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/vstorm/sql-toolset-pydantic-ai/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/vstorm/sql-toolset-pydantic-ai)](https://codecov.io/gh/vstorm/sql-toolset-pydantic-ai)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![MyPy](https://img.shields.io/badge/types-mypy-blue.svg)](https://github.com/python/mypy)
-[![Pydantic v2](https://img.shields.io/badge/Pydantic-v2-E92063?logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
+<p align="center">
+  <a href="https://pypi.org/project/database-pydantic-ai/"><img src="https://img.shields.io/pypi/v/database-pydantic-ai.svg" alt="PyPI version"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://github.com/vstorm-co/database-pydantic-ai/actions/workflows/ci.yaml"><img src="https://github.com/vstorm-co/database-pydantic-ai/actions/workflows/ci.yaml/badge.svg" alt="CI"></a>
+  <a href="https://coveralls.io/github/vstorm-co/database-pydantic-ai?branch=main"><img src="https://coveralls.io/repos/github/vstorm-co/database-pydantic-ai/badge.svg?branch=main" alt="Coverage Status"></a>
+  <a href="https://github.com/pydantic/pydantic-ai"><img src="https://img.shields.io/badge/Powered%20by-Pydantic%20AI-E92063?logo=pydantic&logoColor=white" alt="Pydantic AI"></a>
+</p>
 
-A powerful PydanticAI toolset designed to empower AI agents with SQL database capabilities. It provides a standardized set of tools for agents to explore schemas, query data, and understand database structures with built-in security and performance controls.
+<p align="center">
+  <b>Multi-Backend</b> — SQLite &amp; PostgreSQL
+  &nbsp;&bull;&nbsp;
+  <b>Security-First</b> — read-only mode &amp; query validation
+  &nbsp;&bull;&nbsp;
+  <b>Resource Control</b> — timeouts &amp; row limits
+</p>
 
-## Key Features
+---
 
-- **Multi-Backend Support**: Out-of-the-box support for **SQLite** (via `aiosqlite`) and **PostgreSQL** (via `asyncpg`).
-- **Standardized Toolset**: Consistent interface for AI agents using **Pydantic models** for all data structures.
-- **Security-First**: Built-in `read_only` mode to protect your data from accidental modifications.
-- **Resource Management**: Configurable query timeouts and maximum row limits to prevent runaway queries.
-- **Deep Exploration**: Tools for listing tables, fetching schemas, describing table structures, and explaining query plans.
-- **PydanticAI Native**: Seamless integration with PydanticAI's `Agent` and `FunctionToolset` patterns.
+**Database Toolset** provides everything your [Pydantic AI](https://ai.pydantic.dev/) agent needs to explore schemas, query data, and understand database structures — with built-in security and performance controls.
+
+> **Full framework?** Check out [Pydantic Deep Agents](https://github.com/vstorm-co/pydantic-deepagents) — complete agent framework with planning, filesystem, subagents, and skills.
+
+## Use Cases
+
+| What You Want to Build | How This Toolset Helps |
+|------------------------|------------------------|
+| **Data Analysis Agent** | Query databases, explore schemas, sample data |
+| **Business Intelligence Bot** | Read-only access to production databases |
+| **Database Documentation** | Auto-discover schemas, tables, relationships |
+| **SQL Assistant** | Explain query plans, validate queries |
+| **Multi-DB Agent** | Unified interface across SQLite & PostgreSQL |
 
 ## Installation
 
 ```bash
-uv add sql-toolset-pydantic-ai
+pip install database-pydantic-ai
 ```
 
-## Prerequisites
+Or with uv:
 
-To run the examples and use the library with OpenAI models, you need an OpenAI API key.
+```bash
+uv add database-pydantic-ai
+```
 
-1. Create a `.env` file in your project root (you can use `.env.example` as a template).
-2. Add your OpenAI API key:
-
-   ```env
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-## Quickstart
-
-Connect a PydanticAI agent to a SQLite database in just a few lines of code.
-
-> [!WARNING]
-> This example assumes you have an existing database file (e.g., `data.db`). If you don't, you can create a sample one by running the setup script in `examples/sql/sqlite/setup_db.py`.
+## Quick Start
 
 ```python
 import asyncio
 from pydantic_ai import Agent
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps, SQLITE_SYSTEM_PROMPT
-from dotenv import load_dotenv
-
-# Load environment variables from .env
-load_dotenv()
+from database_pydantic_ai import (
+    SQLiteDatabase,
+    SQLDatabaseDeps,
+    SQLITE_SYSTEM_PROMPT,
+    create_database_toolset,
+)
 
 async def main():
-    # 1. Initialize the database backend & Setup dependencies
-    # Using async context manager ensures the database connection is properly closed
     async with SQLiteDatabase("data.db") as db:
         deps = SQLDatabaseDeps(database=db, read_only=True)
-
-        # 2. Create the toolset
         toolset = create_database_toolset()
 
-        # 3. Initialize the Agent
         agent = Agent(
             "openai:gpt-4o",
             deps_type=SQLDatabaseDeps,
             toolsets=[toolset],
-            system_prompt=SQLITE_SYSTEM_PROMPT
+            system_prompt=SQLITE_SYSTEM_PROMPT,
         )
 
-        # 4. Run the agent
         result = await agent.run(
-            "What are the top 5 most expensive products in our database?",
-            deps=deps
+            "What are the top 5 most expensive products?",
+            deps=deps,
         )
         print(result.output)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())
 ```
 
-## Documentation
+**That's it.** Your agent can now:
 
-Full documentation is available at [https://vstorm-co.github.io/sql-toolset-pydantic-ai/](https://vstorm-co.github.io/sql-toolset-pydantic-ai/).
+- List all tables in the database (`list_tables`)
+- Get full schema overview (`get_schema`)
+- Describe table structures and relationships (`describe_table`)
+- Analyze query execution plans (`explain_query`)
+- Execute SQL queries with safety controls (`query`)
 
-To build and serve the documentation locally:
+## Available Backends
 
-```bash
-uv pip install mkdocs-material mkdocstrings[python]
-mkdocs serve
+| Backend | Driver | Use Case |
+|---------|--------|----------|
+| `SQLiteDatabase` | `aiosqlite` | Local files, prototyping, lightweight apps |
+| `PostgreSQLDatabase` | `asyncpg` | Production databases, connection pooling |
+
+### SQLite
+
+```python
+from database_pydantic_ai import SQLiteDatabase
+
+async with SQLiteDatabase("data.db", read_only=True) as db:
+    # Zero configuration, file-based
+    tables = await db.get_tables()
 ```
+
+### PostgreSQL
+
+```python
+from database_pydantic_ai import PostgreSQLDatabase
+
+async with PostgreSQLDatabase(
+    user="postgres",
+    password="secret",
+    db="mydb",
+    host="localhost:5432",
+    read_only=True,
+) as db:
+    # Connection pooling with asyncpg
+    schema = await db.get_schema()
+```
+
+## Available Tools
+
+The `create_database_toolset()` provides 5 tools to the agent:
+
+| Tool | Returns | Description |
+|------|---------|-------------|
+| `list_tables` | `list[str]` | List all available tables |
+| `get_schema` | `SchemaInfo \| str` | Full database structure overview |
+| `describe_table` | `TableInfo \| str` | Detailed table columns, types, constraints |
+| `explain_query` | `str` | Query execution plan without running it |
+| `query` | `QueryResult` | Execute SQL with timeout and row limits |
+
+## Configuration
+
+The `SQLDatabaseDeps` class controls the agent's database access:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `database` | `SQLDatabaseProtocol` | **Required** | Backend instance (SQLite or PostgreSQL) |
+| `read_only` | `bool` | `True` | Block destructive queries (INSERT, UPDATE, DELETE, ...) |
+| `max_rows` | `int` | `100` | Maximum rows returned per query |
+| `query_timeout` | `float` | `30.0` | Query timeout in seconds |
+
+## Security
+
+Built-in protection against accidental or malicious data modifications:
+
+- **Read-only mode** — blocks 15 dangerous SQL keywords (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, ...)
+- **Multi-statement prevention** — rejects queries with multiple statements
+- **Comment-aware parsing** — detects dangerous keywords even behind `--` and `/* */` comments
+- **CTE handling** — validates Common Table Expressions for write operations
+- **Query timeouts** — prevents runaway queries with `asyncio.wait_for()`
+- **Row limits** — caps result sets to prevent memory exhaustion
 
 ## Examples
 
-Detailed, runnable examples are located in the `examples/` directory:
+Runnable examples are in the `examples/` directory:
 
-- **SQLite**: [examples/sql/sqlite](examples/sql/sqlite/README.md) - Setup and agent usage with SQLite.
-- **PostgreSQL**: [examples/sql/postgresql](examples/sql/postgresql/README.md) - Dockerized setup and agent usage with PostgreSQL.
-
-You can run them using the provided `Makefile`:
+- **SQLite**: [examples/sql/sqlite](examples/sql/sqlite/README.md)
+- **PostgreSQL**: [examples/sql/postgresql](examples/sql/postgresql/README.md)
 
 ```bash
 make run-example-sqlite
 make run-example-postgres
 ```
 
-## Available Tools
+## Documentation
 
-The `create_database_toolset()` provides the following tools to the agent:
+Full documentation: [vstorm-co.github.io/database-pydantic-ai](https://vstorm-co.github.io/database-pydantic-ai/)
 
-- `list_tables`: List all available tables in the database.
-- `get_schema`: Get an overview of the database structure (tables, column counts, row counts).
-- `describe_table`: Get detailed information about a specific table's columns, types, and constraints.
-- `explain_query`: Get the execution plan for a SQL query without running it.
-- `query`: Execute a SQL query and return results (respecting `max_rows` and `query_timeout`).
+## Related Projects
 
-## Configuration
+| Package | Description |
+|---------|-------------|
+| [Pydantic Deep Agents](https://github.com/vstorm-co/pydantic-deepagents) | Full agent framework (planning, filesystem, subagents, skills) |
+| [pydantic-ai-backend](https://github.com/vstorm-co/pydantic-ai-backend) | File storage & sandbox backends |
+| [pydantic-ai-todo](https://github.com/vstorm-co/pydantic-ai-todo) | Task planning toolset |
+| [subagents-pydantic-ai](https://github.com/vstorm-co/subagents-pydantic-ai) | Multi-agent orchestration |
+| [summarization-pydantic-ai](https://github.com/vstorm-co/summarization-pydantic-ai) | Context management |
+| [pydantic-ai](https://github.com/pydantic/pydantic-ai) | The foundation — agent framework by Pydantic |
 
-The `SQLDatabaseDeps` class allows you to control the agent's database access:
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `database` | `SQLDatabaseProtocol` | **Required** | The backend instance (SQLite or Postgres). |
-| `read_only` | `bool` | `True` | If True, blocks destructive queries (INSERT, UPDATE, DELETE). |
-| `max_rows` | `int` | `100` | Maximum number of rows returned by the `query` tool. |
-| `query_timeout` | `float` | `30.0` | Timeout in seconds for database queries. |
-
-## Development
-
-The project uses `uv` for dependency management and a `Makefile` for common tasks.
+## Contributing
 
 ```bash
-# Install dependencies
+git clone https://github.com/vstorm-co/database-pydantic-ai.git
+cd database-pydantic-ai
 make install
-
-# Run tests
-make test
-
-# Lint and format
-make lint
-make format
-
-# Type checking
-make typecheck
-make typecheck-mypy
+make test  # 100% coverage required
+make all   # format + lint + typecheck + test
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE)
+
+<p align="center">
+  <sub>Built with ❤️ by <a href="https://github.com/vstorm-co">vstorm-co</a></sub>
+</p>

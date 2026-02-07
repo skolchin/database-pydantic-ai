@@ -6,8 +6,8 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, SkipValidation
 from pydantic_ai import FunctionToolset, RunContext
 
-from sql_toolset_pydantic_ai.sql.protocol import SQLDatabaseProtocol
-from sql_toolset_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
+from database_pydantic_ai.sql.protocol import SQLDatabaseProtocol
+from database_pydantic_ai.types import QueryResult, SchemaInfo, TableInfo
 
 SQLITE_SYSTEM_PROMPT = """
 ## SQLite Database Toolset

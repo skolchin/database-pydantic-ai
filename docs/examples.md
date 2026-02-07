@@ -1,13 +1,13 @@
 # Examples
 
-You can find runnable examples in the [examples/](https://github.com/vstorm-co/sql-toolset-pydantic-ai/tree/main/examples) directory of the repository.
+You can find runnable examples in the [examples/](https://github.com/vstorm-co/database-pydantic-ai/tree/main/examples) directory of the repository.
 
 ## SQL Examples
 
 These examples demonstrate how to use the toolset with different SQL databases:
 
-- **[SQLite](https://github.com/vstorm-co/sql-toolset-pydantic-ai/tree/main/examples/sql/sqlite)**: A complete example showing how to set up a local SQLite database and connect a Pydantic AI agent to it. Includes both manual cleanup and async context manager patterns.
-- **[PostgreSQL](https://github.com/vstorm-co/sql-toolset-pydantic-ai/tree/main/examples/sql/postgresql)**: A Docker-based example that sets up a PostgreSQL instance and demonstrates agent integration. Includes both manual cleanup and async context manager patterns.
+- **[SQLite](https://github.com/vstorm-co/database-pydantic-ai/tree/main/examples/sql/sqlite)**: A complete example showing how to set up a local SQLite database and connect a Pydantic AI agent to it. Includes both manual cleanup and async context manager patterns.
+- **[PostgreSQL](https://github.com/vstorm-co/database-pydantic-ai/tree/main/examples/sql/postgresql)**: A Docker-based example that sets up a PostgreSQL instance and demonstrates agent integration. Includes both manual cleanup and async context manager patterns.
 
 ## Running Examples Locally
 

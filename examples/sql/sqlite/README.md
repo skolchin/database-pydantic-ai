@@ -1,6 +1,6 @@
 # SQLite Example
 
-This directory contains a complete example of using the `sql-toolset-pydantic-ai` with an SQLite database.
+This directory contains a complete example of using the `database-pydantic-ai` with an SQLite database.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ This directory contains a complete example of using the `sql-toolset-pydantic-ai
 1. **Install dependencies:**
 
    ```bash
-   uv add sql-toolset-pydantic-ai
+   uv add database-pydantic-ai
    ```
 
 2. **Configure environment variables:**

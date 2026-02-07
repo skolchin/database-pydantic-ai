@@ -1,6 +1,6 @@
 import re
 
-from sql_toolset_pydantic_ai.types import TableInfo
+from database_pydantic_ai.types import TableInfo
 
 
 class BaseSQLDatabase:

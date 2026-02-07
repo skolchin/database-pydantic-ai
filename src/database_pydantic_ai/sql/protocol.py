@@ -1,6 +1,6 @@
 from typing import Any, Protocol, runtime_checkable
 
-from sql_toolset_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
+from database_pydantic_ai.types import ForeignKeyInfo, QueryResult, SchemaInfo, TableInfo
 
 
 @runtime_checkable

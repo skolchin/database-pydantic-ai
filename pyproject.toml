@@ -1,11 +1,24 @@
 [project]
-name = "sql-toolset-pydantic-ai"
+name = "database-pydantic-ai"
 version = "0.0.1"
 description = "PydanticAI toolset allowing database usage with AI agents"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "Vstorm"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Framework :: Pydantic :: 2",
+]
 dependencies = [
     "aiosqlite>=0.22.1",
     "asyncpg>=0.31.0",
@@ -14,21 +27,21 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/vstorm-co/sql-toolset-pydantic-ai"
-Documentation = "https://github.com/vstorm-co/sql-toolset-pydantic-ai"
-Repository = "https://github.com/vstorm-co/sql-toolset-pydantic-ai"
-Issues = "https://github.com/vstorm-co/sql-toolset-pydantic-ai/issues"
+Homepage = "https://github.com/vstorm-co/database-pydantic-ai"
+Documentation = "https://github.com/vstorm-co/database-pydantic-ai"
+Repository = "https://github.com/vstorm-co/database-pydantic-ai"
+Issues = "https://github.com/vstorm-co/database-pydantic-ai/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sql_toolset_pydantic_ai"]
+packages = ["src/database_pydantic_ai"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["sql_toolset_pydantic_ai*"]
+include = ["database_pydantic_ai*"]
 
 [dependency-groups]
 dev = [
@@ -91,7 +104,7 @@ asyncio_default_fixture_loop_scope = "function"
 # Coverage configuration
 [tool.coverage.run]
 branch = true
-source = ["src/sql_toolset_pydantic_ai"]
+source = ["src/database_pydantic_ai"]
 data_file = ".coverage/.coverage"
 
 [tool.coverage.report]
@@ -122,7 +135,7 @@ directory = "htmlcov"
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
-include = ["src/sql_toolset_pydantic_ai"]
+include = ["src/database_pydantic_ai"]
 exclude = ["**/__pycache__", ".venv*", "tests"]
 reportMissingTypeStubs = false
 reportMissingImports = false

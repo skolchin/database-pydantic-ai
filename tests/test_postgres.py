@@ -1,25 +1,16 @@
 import asyncio
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 
-from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
-from sql_toolset_pydantic_ai.types import ForeignKeyInfo, SchemaInfo, TableInfo
+from database_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
+from database_pydantic_ai.types import ForeignKeyInfo, SchemaInfo, TableInfo
 
 
 ### FIXTURES ###
-# Start the container ONCE for the whole test session
-@pytest.fixture(scope="session")
-def postgres_container() -> Generator[PostgresContainer, Any, None]:
-    container = PostgresContainer("postgres:16-alpine")
-    container.start()
-    yield container
-    container.stop()
-
-
 # Setup fixture for the client
 @pytest_asyncio.fixture(scope="function")
 async def pg_db(postgres_container: PostgresContainer) -> AsyncGenerator[PostgreSQLDatabase, Any]:

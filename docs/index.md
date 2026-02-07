@@ -1,4 +1,4 @@
-# SQL Toolset for Pydantic AI
+# Database Toolset for Pydantic AI
 
 A powerful PydanticAI toolset designed to empower AI agents with SQL database capabilities. It provides a standardized set of tools for agents to explore schemas, query data, and understand database structures with built-in security and performance controls.
 
@@ -21,8 +21,8 @@ Connect a PydanticAI agent to a SQLite database in just a few lines of code:
 ```python
 import asyncio
 from pydantic_ai import Agent
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps, SQLITE_SYSTEM_PROMPT
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.sql.toolset import create_database_toolset, SQLDatabaseDeps, SQLITE_SYSTEM_PROMPT
 
 async def main():
     # 1. Initialize the database backend & Setup dependencies

@@ -4,8 +4,8 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
-from sql_toolset_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
-from sql_toolset_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo, TableInfo
+from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
+from database_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo, TableInfo
 
 
 # Setup fixture for the client

@@ -1,5 +1,5 @@
 /* ============================================
-   sql-toolset-pydantic-ai Documentation Styles
+   database-pydantic-ai Documentation Styles
    Clean, minimal - inspired by FastAPI/Pydantic AI
    ============================================ */
 
@@ -44,7 +44,7 @@
 }
 
 /* Center the main title on index page */
-.md-content h1[id="sql-toolset-pydantic-ai"] {
+.md-content h1[id="database-pydantic-ai"] {
     text-align: center;
     font-size: 2.5rem;
     margin-top: 0;

@@ -4,8 +4,8 @@ from dotenv import load_dotenv
 from loguru import logger
 from pydantic_ai import Agent
 
-from sql_toolset_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
-from sql_toolset_pydantic_ai.sql.toolset import (
+from database_pydantic_ai.sql.backends.postgres import PostgreSQLDatabase
+from database_pydantic_ai.sql.toolset import (
     SQLITE_SYSTEM_PROMPT,
     SQLDatabaseDeps,
     create_database_toolset,
@@ -20,7 +20,7 @@ PG_CONFIG = {"user": "user", "password": "password", "db": "test_db", "host": "l
 async def run_sql_agent_example_context_manager():
     """
     Demonstrate how to empower a Pydantic AI agent with PostgreSQL capabilities
-    using the sql-toolset-pydantic-ai package with async context manager.
+    using the database-pydantic-ai package with async context manager.
     This is the recommended pattern for automatic resource cleanup.
     """
     logger.info("--- Pydantic AI SQL Toolset Example (PostgreSQL) with Context Manager ---")

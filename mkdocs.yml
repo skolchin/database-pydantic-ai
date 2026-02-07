@@ -1,8 +1,8 @@
-site_name: SQL Toolset for Pydantic AI
+site_name: Database Toolset for Pydantic AI
 site_description: Empower Pydantic AI agents with SQL database capabilities
-site_url: https://vstorm-co.github.io/sql-toolset-pydantic-ai/
-repo_url: https://github.com/vstorm-co/sql-toolset-pydantic-ai
-repo_name: vstorm-co/sql-toolset-pydantic-ai
+site_url: https://vstorm-co.github.io/database-pydantic-ai/
+repo_url: https://github.com/vstorm-co/database-pydantic-ai
+repo_name: vstorm-co/database-pydantic-ai
 
 theme:
   name: material
@@ -136,10 +136,10 @@ extra:
     deprecated: Deprecated
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/vstorm-co/sql-toolset-pydantic-ai
+      link: https://github.com/vstorm-co/database-pydantic-ai
       name: GitHub
     - icon: fontawesome/brands/python
-      link: https://pypi.org/project/sql-toolset-pydantic-ai/
+      link: https://pypi.org/project/database-pydantic-ai/
       name: PyPI
   analytics:
     provider: google

@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 class CustomTypes(BaseModel):
     """
-    Base class for custom Pydantic models in the sql-toolset-pydantic-ai library.
+    Base class for custom Pydantic models in the database-pydantic-ai library.
 
     This class provides a common configuration for all custom models in the library,
     allowing arbitrary types to be used in Pydantic models.
