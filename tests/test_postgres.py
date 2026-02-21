@@ -275,7 +275,7 @@ async def test_relationship_integrity(pg_db: PostgreSQLDatabase) -> None:
     assert len(tables) == 2
     assert len(res) > 0
     assert res == [
-        ForeignKeyInfo(column="user_id", references_table="users", references_column="id")
+        ForeignKeyInfo(column="user_id", references_table="public.users", references_column="id")
     ]
 
 
@@ -301,6 +301,8 @@ async def test_get_table_info_object(pg_db: PostgreSQLDatabase) -> None:
     await pg_db.execute(
         "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
     )
+    await pg_db.execute("COMMENT ON TABLE users is 'Users';")
+    await pg_db.execute("COMMENT ON COLUMN users.name is 'User name';")
     await pg_db.execute(
         "CREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER,"
         "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
@@ -316,7 +318,8 @@ async def test_get_table_info_object(pg_db: PostgreSQLDatabase) -> None:
     assert isinstance(res_users, TableInfo)
 
     # Users
-    assert res_users.name == "users"
+    assert res_users.name == "public.users"
+    assert res_users.comment == "Users"
     assert res_users.columns[0].is_primary_key
     assert res_users.row_count == 0
     assert res_users.primary_key == ["id"]
@@ -324,13 +327,13 @@ async def test_get_table_info_object(pg_db: PostgreSQLDatabase) -> None:
 
     # Orders
     assert res_orders is not None
-    assert res_orders.name == "orders"
+    assert res_orders.name == "public.orders"
     assert not res_orders.columns[1].is_primary_key
     assert res_orders.columns[2].data_type == "text"
     assert isinstance(res_orders.foreign_keys, list)
     assert len(res_orders.foreign_keys) == 1
     assert res_orders.foreign_keys[0].column == "user_id"
-    assert res_orders.foreign_keys[0].references_table == "users"
+    assert res_orders.foreign_keys[0].references_table == "public.users"
 
 
 @pytest.mark.asyncio
@@ -354,6 +357,8 @@ async def test_get_tables(pg_db: PostgreSQLDatabase) -> None:
         );
         """
     )
+    await pg_db.execute("COMMENT ON TABLE users is 'Users';")
+    await pg_db.execute("COMMENT ON COLUMN users.name is 'User name';")
     await pg_db.execute(
         """
         CREATE TABLE orders (
@@ -377,19 +382,27 @@ async def test_get_tables(pg_db: PostgreSQLDatabase) -> None:
     # Assert
     assert res is not None
     assert len(res) > 0
-    assert res == ["orders", "products", "users"]
+    assert res == ["public.orders", "public.products", "public.users"]
 
 
 @pytest.mark.asyncio
 async def test_get_tables_no_tables(pg_db: PostgreSQLDatabase) -> None:
     # Act
-    res = await pg_db.get_tables()
+    await pg_db.execute("CREATE SCHEMA if not exists test;")
+    await pg_db.execute(
+        "CREATE TABLE test.users (dummy TEXT);"
+    )
 
     # Assert
+    res = await pg_db.get_tables()
     assert res is not None
     assert isinstance(res, list)
     assert len(res) == 0
 
+    res = await pg_db.get_tables('test')
+    assert res is not None
+    assert isinstance(res, list)
+    assert len(res) == 1
 
 @pytest.mark.asyncio
 async def test_get_schema_str(pg_db: PostgreSQLDatabase) -> None:
@@ -403,6 +416,8 @@ async def test_get_schema_str(pg_db: PostgreSQLDatabase) -> None:
         );
         """
     )
+    await pg_db.execute("COMMENT ON TABLE users is 'Users';")
+    await pg_db.execute("COMMENT ON COLUMN users.name is 'User name';")
     await pg_db.execute(
         """
         CREATE TABLE orders (
@@ -440,6 +455,8 @@ async def test_get_schema_object(pg_db: PostgreSQLDatabase) -> None:
         );
         """
     )
+    await pg_db.execute("COMMENT ON TABLE users is 'Users'")
+    await pg_db.execute("COMMENT ON COLUMN users.name is 'User name'")
     await pg_db.execute(
         """
         CREATE TABLE orders (
@@ -458,8 +475,13 @@ async def test_get_schema_object(pg_db: PostgreSQLDatabase) -> None:
         );
         """
     )
+    await pg_db.execute(
+        """
+        CREATE TABLE "select"(dummy TEXT);
+        """
+    )
     await pg_db.execute("INSERT INTO users (name, city) VALUES ('test', 'TestCity')")
-    res = await pg_db.get_schema(return_md=False)
+    res = await pg_db.get_schema("public", return_md=False)
 
     # Assert
     assert res is not None
@@ -472,32 +494,37 @@ async def test_get_schema_object(pg_db: PostgreSQLDatabase) -> None:
     tables = [t for t in res.tables if isinstance(t, TableInfo)]
 
     # Users
-    users_table = next(t for t in tables if t.name == "users")
+    users_table = next(t for t in tables if t.name == "public.users")
     assert isinstance(users_table, TableInfo)
+    assert users_table.comment == "Users"
     assert users_table.row_count == 1
     assert users_table.columns[0].name == "id"
     assert users_table.columns[0].is_primary_key
+    assert users_table.columns[1].comment == "User name"
     assert len(users_table.columns) == 3
 
     # Orders
-    orders_table = next(t for t in tables if t.name == "orders")
+    orders_table = next(t for t in tables if t.name == "public.orders")
     assert isinstance(orders_table, TableInfo)
     assert orders_table.row_count == 0
     assert orders_table.primary_key == ["id"]
     assert isinstance(orders_table.foreign_keys, list)
     assert len(orders_table.foreign_keys) == 1
     assert orders_table.foreign_keys[0].column == "user_id"
-    assert orders_table.foreign_keys[0].references_table == "users"
+    assert orders_table.foreign_keys[0].references_table == "public.users"
     assert orders_table.foreign_keys[0].references_column == "id"
 
     # Products
-    products_table = next(t for t in tables if t.name == "products")
+    products_table = next(t for t in tables if t.name == "public.products")
     assert isinstance(products_table, TableInfo)
     assert products_table.row_count == 0
     assert products_table.columns[1].data_type == "bytea"
     assert products_table.columns[2].data_type == "real"
     assert products_table.primary_key == ["main_key"]
 
+    # Tables with reserved names
+    reserved_table = next(t for t in tables if t.name == 'public."select"')
+    assert isinstance(reserved_table, TableInfo)
 
 @pytest.mark.asyncio
 async def test_get_schema_no_tables_object(pg_db: PostgreSQLDatabase) -> None:
@@ -542,3 +569,43 @@ async def test_context_manager(pg_db: PostgreSQLDatabase) -> None:
         await postgres.explain("random_query")
 
     assert not pg_db._pool
+
+@pytest.mark.asyncio
+async def test_get_schemas(pg_db: PostgreSQLDatabase) -> None:
+    """
+    Test schemas listing.
+
+    Verifies that the PostgreSQL database returns all user schemas.
+    """
+    # Act
+    await pg_db.execute(
+        "CREATE TABLE users (id SERIAL PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
+    )
+    await pg_db.execute("CREATE SCHEMA if not exists test;")
+    await pg_db.execute(
+        "CREATE TABLE test.users (dummy TEXT);"
+    )
+
+    res = await pg_db.get_schemas()
+
+    # Assert
+    assert res == ["public", "test"]
+
+@pytest.mark.asyncio
+async def test_requote(pg_db: PostgreSQLDatabase) -> None:
+    """
+    Test proper quoting.
+
+    Verifies that quoting is performed according to PG rules.
+    """
+
+    checks = [
+        ('table', '"table"'),
+        ('aaa', 'aaa'),
+        ('public.users', 'public.users'),
+        ('public.select', 'public."select"'),
+        ('user.select', '"user"."select"'),
+    ]
+    for t, r in checks:
+        res = await pg_db.requote(t)
+        assert res == r

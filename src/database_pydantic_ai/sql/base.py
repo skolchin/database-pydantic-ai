@@ -26,8 +26,9 @@ class BaseSQLDatabase:
         "DO",
     }
 
-    def __init__(self, read_only: bool = True) -> None:
+    def __init__(self, read_only: bool = True, echo: bool = False) -> None:
         self.read_only = read_only
+        self.echo = echo
 
     def check_query_safety(self, query: str) -> str:
         """
@@ -101,16 +102,21 @@ class BaseSQLDatabase:
         components.append(f"#### {table.name} ####")
 
         # Extract column names for the header
-        column_names = list(table.columns[0].model_dump().keys())
-        components.append("| " + " | ".join(column_names) + " |")
+        column_names = list(table.columns[0].model_dump().keys()) + ["foreign_key"]
+        components.append("| " + " | ".join(column_names) + " | |")
 
         # Add the spacer (must be below the header)
         components.append("| " + " | ".join(["---"] * len(column_names)) + " |")
 
+        # Build FK map
+        fk_map = {f.column: f"{f.references_table}({f.references_column})" for f in table.foreign_keys or []}
+
         # Add the rows
         for col in table.columns:
             row_values = [str(v) for v in col.model_dump().values()]
-            components.append(f"| {' | '.join(row_values)} |")
+            row_str = f"| {' | '.join(row_values)}"
+            row_str += f" | {fk_map[col.name]} |" if col.name in fk_map else " | |"
+            components.append(row_str)
 
         # Join everything exactly once
         return "\n".join(components)

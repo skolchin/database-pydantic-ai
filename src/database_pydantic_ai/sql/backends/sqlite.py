@@ -1,10 +1,12 @@
 import asyncio
 import sqlite3
 import time
+import logging
 from typing import Any
 
 import aiosqlite
 
+from pydantic_ai import ModelRetry
 from database_pydantic_ai.sql.base import BaseSQLDatabase
 from database_pydantic_ai.sql.protocol import SQLDatabaseProtocol
 from database_pydantic_ai.types import (
@@ -15,10 +17,11 @@ from database_pydantic_ai.types import (
     TableInfo,
 )
 
+_logger = logging.getLogger(__name__)
 
 class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
-    def __init__(self, db_path: str, read_only: bool = True) -> None:
-        super().__init__(read_only=read_only)
+    def __init__(self, db_path: str, read_only: bool = True, echo: bool = False) -> None:
+        super().__init__(read_only=read_only, echo=echo)
         self.db_path = db_path
         self._connection: aiosqlite.Connection | None = None
 
@@ -47,6 +50,11 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
             # Return rows as a dict-like object for easier processing
             self._connection.row_factory = sqlite3.Row
 
+            # Set echo
+            if self.echo:
+                await self._connection.set_trace_callback(_logger.debug)
+
+
     async def close(self) -> None:
         """Close database connection."""
         if self._connection:
@@ -55,39 +63,43 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
     async def execute(self, query: str, params: tuple[Any, ...] | None = None) -> QueryResult:
         """Execute a SQL query with optional parameters."""
-        safe_query = self.check_query_safety(query)
-        # if self.read_only and self._is_write_query(query):
-        #     raise PermissionError("Database is in read-only mode")
+        try:
+            safe_query = self.check_query_safety(query)
+            # if self.read_only and self._is_write_query(query):
+            #     raise PermissionError("Database is in read-only mode")
 
-        await self.connect()
-        # Check if connection was successfully established
-        if self._connection is None:
-            raise RuntimeError("Failed to establish database connection")
+            await self.connect()
+            # Check if connection was successfully established
+            if self._connection is None:
+                raise RuntimeError("Failed to establish database connection")
 
-        start_time = time.perf_counter()
+            start_time = time.perf_counter()
 
-        # Check if connection exists to satisfy MyPy and prevent runtime crashes
-        if self._connection is None:
-            raise RuntimeError("Database connection is not initialized. Call connect() first.")
+            # Check if connection exists to satisfy MyPy and prevent runtime crashes
+            if self._connection is None:
+                raise RuntimeError("Database connection is not initialized. Call connect() first.")
 
-        # While using `aiosqlite`, executed call has to be awaited
-        async with self._connection.execute(safe_query, params or ()) as cursor:
-            rows = await cursor.fetchall()
+            # While using `aiosqlite`, executed call has to be awaited
+            async with self._connection.execute(safe_query, params or ()) as cursor:
+                rows = await cursor.fetchall()
 
-            # Convert `sqlite3.Row` object to tuples for the protocol
-            processed_rows = [tuple(row) for row in rows]
-            columns = (
-                [description[0] for description in cursor.description] if cursor.description else []
-            )
+                # Convert `sqlite3.Row` object to tuples for the protocol
+                processed_rows = [tuple(row) for row in rows]
+                columns = (
+                    [description[0] for description in cursor.description] if cursor.description else []
+                )
 
-            return QueryResult(
-                columns=columns,
-                rows=processed_rows,
-                row_count=len(processed_rows),
-                execution_time_ms=(time.perf_counter() - start_time) * 1000,
-            )
+                return QueryResult(
+                    columns=columns,
+                    rows=processed_rows,
+                    row_count=len(processed_rows),
+                    execution_time_ms=(time.perf_counter() - start_time) * 1000,
+                )
+        except (ValueError, sqlite3.Error) as ex:
+            # Query is invalid, raise Retry to let LLM rewrite it
+            raise ModelRetry(f'Query execution error: {ex}. Rewrite the query and try again.')
 
-    async def get_tables(self) -> list[str]:
+    async def get_tables(self, schema_name: str | None = None) -> list[str]:
         """Get list of tables in the public schema."""
         # Fetch all table names from the database
         query = "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%';"
@@ -117,7 +129,7 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
         return foreign_keys
 
     async def get_table_info(
-        self, table_name: str, return_md: bool = True
+        self, table_name: str, return_md: bool = False
     ) -> TableInfo | str | None:
         """Get detailed information about a specific table."""
         tables = await self.get_tables()
@@ -165,7 +177,11 @@ class SQLiteDatabase(BaseSQLDatabase, SQLDatabaseProtocol):
 
         return table
 
-    async def get_schema(self, return_md: bool = True) -> SchemaInfo | str:
+    async def get_schemas(self) -> list[str] | None:
+        """Get list of schemas in the database. Returns List[None] """
+        return None
+    
+    async def get_schema(self, schema_name: str | None = None, return_md: bool = True) -> SchemaInfo | str:
         """Get database schema information."""
         table_names = await self.get_tables()
 

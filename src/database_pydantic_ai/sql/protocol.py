@@ -8,6 +8,7 @@ class SQLDatabaseProtocol(Protocol):
     """Protocol for database backends."""
 
     read_only: bool
+    echo: bool
 
     async def connect(self) -> None:
         """Connect to the database"""
@@ -25,7 +26,7 @@ class SQLDatabaseProtocol(Protocol):
         """Execute a SQL query with optional parameters."""
         ...
 
-    async def get_tables(self) -> list[str]:
+    async def get_tables(self, schema_name: str | None = None) -> list[str]:
         """Get list of tables in the database"""
         ...
 
@@ -37,7 +38,11 @@ class SQLDatabaseProtocol(Protocol):
         """Get detailed information about a specific table."""
         ...
 
-    async def get_schema(self, return_md: bool = True) -> SchemaInfo | str:
+    async def get_schemas(self) -> list[str] | None:
+        """Get list of schemas in the database or None if schemas are not supported """
+        ...
+
+    async def get_schema(self, schema_name: str | None = None, return_md: bool = True) -> SchemaInfo | str:
         """Get database schema information."""
         ...
 

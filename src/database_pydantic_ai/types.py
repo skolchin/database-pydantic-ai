@@ -34,6 +34,7 @@ class ColumnInfo(CustomTypes):
     nullable: bool = True
     default: str | None = None
     is_primary_key: bool = False
+    comment: str | None = None
 
 
 class ForeignKeyInfo(CustomTypes):
@@ -52,6 +53,7 @@ class TableInfo(CustomTypes):
     row_count: int | None = None
     primary_key: list[str] | None = None
     foreign_keys: list[ForeignKeyInfo] | None = None
+    comment: str | None = None
 
 
 class SchemaInfo(CustomTypes):

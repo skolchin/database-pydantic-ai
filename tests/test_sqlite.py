@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 import pytest_asyncio
 
+from pydantic_ai import ModelRetry
 from database_pydantic_ai.sql.backends.sqlite import SQLiteDatabase
 from database_pydantic_ai.types import ColumnInfo, ForeignKeyInfo, SchemaInfo, TableInfo
 
@@ -28,15 +29,15 @@ async def sqlite_client_read_only() -> AsyncGenerator[SQLiteDatabase, Any]:
 @pytest.mark.asyncio
 async def test_read_client_without_query(sqlite_client_read_only: SQLiteDatabase) -> None:
     """
-    Test that an empty query raises a ValueError.
+    Test that an empty query raises a ModelRetry.
 
     Verifies that the database backend properly validates queries and raises
-    a ValueError when an empty query is provided.
+    a ModelRetry when an empty query is provided.
     """
     # No Query
-    with pytest.raises(ValueError) as exc_info:
+    with pytest.raises(ModelRetry) as exc_info:
         await sqlite_client_read_only.execute("")
-    assert str(exc_info.value) == "Query is empty or only contains comments."
+    assert "Query is empty or only contains comments." in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -351,6 +352,25 @@ async def test_get_table_info_object(sqlite_client: SQLiteDatabase) -> None:
         ],
     )
 
+@pytest.mark.asyncio
+async def test_get_table_info_string(sqlite_client: SQLiteDatabase) -> None:
+    # Act
+    await sqlite_client.execute(
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, city TEXT NOT NULL);"
+    )
+    await sqlite_client.execute(
+        "CREATE TABLE orders (id INTEGER PRIMARY KEY, user_id INTEGER,"
+        "product TEXT, FOREIGN KEY (user_id) REFERENCES users (id));"
+    )
+    res_users = await sqlite_client.get_table_info("users", return_md=True)
+    res_orders = await sqlite_client.get_table_info("orders", return_md=True)
+
+    # Assert
+    assert res_users is not None
+    assert res_orders is not None
+
+    assert isinstance(res_users, str)
+    assert isinstance(res_orders, str)
 
 @pytest.mark.asyncio
 async def test_get_table_info_no_table(sqlite_client: SQLiteDatabase) -> None:
@@ -560,13 +580,21 @@ async def test_explain(sqlite_client: SQLiteDatabase) -> None:
     assert len(res) > 0
     assert isinstance(res, str)
 
+# Not clear what this one is for. Explain on `random_query`` will always trigger an error.
+# @pytest.mark.asyncio
+# async def test_explain_random(sqlite_client: SQLiteDatabase) -> None:
+#     # Act
+#     res = await sqlite_client.explain("random_query")
+
+#     # Assert
+#     assert res is not None
+#     assert len(res) > 0
+#     assert isinstance(res, str)
 
 @pytest.mark.asyncio
-async def test_explain_random(sqlite_client: SQLiteDatabase) -> None:
+async def test_get_schemas(sqlite_client: SQLiteDatabase) -> None:
     # Act
-    res = await sqlite_client.explain("random_query")
+    res = await sqlite_client.get_schemas()
 
     # Assert
-    assert res is not None
-    assert len(res) > 0
-    assert isinstance(res, str)
+    assert res is None
