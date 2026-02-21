@@ -52,7 +52,7 @@ class SQLDatabaseDeps(BaseModel):
     id: str | None = None
 
 
-def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | None = None) -> FunctionToolset[SQLDatabaseDeps]:
+def create_database_toolset(*, id: str | None = None) -> FunctionToolset[SQLDatabaseDeps]:
     """
     Create a database toolset for AI Agents.
 
@@ -74,7 +74,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
         Returns:
             List of all table's names.
         """
-        return await (ctx.deps or deps).database.get_tables()
+        return await ctx.deps.database.get_tables()
 
     @toolset.tool
     async def get_schema(ctx: RunContext[SQLDatabaseDeps], return_md: bool) -> SchemaInfo | str:
@@ -84,7 +84,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
         Returns:
             List of all tables with their column counts and row counts.
         """
-        return await (ctx.deps or deps).database.get_schema(return_md=return_md)
+        return await ctx.deps.database.get_schema(return_md=return_md)
 
     @toolset.tool
     async def describe_table(
@@ -99,7 +99,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
         Returns:
             Table structure including columns, types, constraints, and relationships.
         """
-        return await (ctx.deps or deps).database.get_table_info(table_name)
+        return await ctx.deps.database.get_table_info(table_name)
 
     @toolset.tool
     async def explain_query(ctx: RunContext[SQLDatabaseDeps], sql_query: str) -> str:
@@ -117,7 +117,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
             - Identify missing indexes
             - Optimize slow queries
         """
-        return await (ctx.deps or deps).database.explain(sql_query)
+        return await ctx.deps.database.explain(sql_query)
 
     @toolset.tool
     async def query(
@@ -138,7 +138,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
         """
         try:
             result = await asyncio.wait_for(
-                (ctx.deps or deps).database.execute(sql_query), timeout=ctx.deps.query_timeout
+                ctx.deps.database.execute(sql_query), timeout=ctx.deps.query_timeout
             )
 
         except asyncio.TimeoutError:
@@ -149,7 +149,7 @@ def create_database_toolset(*, id: str | None = None, deps: SQLDatabaseDeps | No
                 execution_time_ms=0,  # indicate max wait with `0`
             )
 
-        limit = max_rows or (ctx.deps or deps).max_rows
+        limit = max_rows or ctx.deps.max_rows
 
         if len(result.rows) > limit:
             result = QueryResult(
